@@ -10,10 +10,16 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * Smart Phone Sensing Example 2. Working with sensors.
@@ -48,13 +54,32 @@ public class MainActivity extends Activity implements SensorEventListener {
      * Accelerometer z value
      */
     private float aZ = 0;
+    /**
+     * The text view.
+     */
+    private TextView textView;
+    /**
+     * The edit text box.
+     */
+    private EditText editText;
 
     /**
      * Text fields to show the sensor values.
      */
     private TextView currentX, currentY, currentZ, textRssi; //took out titleAcc from example 2
 
-    Button buttonRssi;
+    Button buttonRssi, buttonStart, buttonStop;
+
+    FileOutputStream outputStream;
+
+    boolean started=false;
+
+    String csvName="";
+
+    //used to get data every certain time interval
+    Handler h = new Handler();
+    int delay = 1000; //1 second=1000 milisecond
+    Runnable runnable;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,9 +92,18 @@ public class MainActivity extends Activity implements SensorEventListener {
         currentZ = (TextView) findViewById(R.id.currentZ);
         //titleAcc = (TextView) findViewById(R.id.titleAcc);
         textRssi = (TextView) findViewById(R.id.textRSSI);
+        textView = (TextView) findViewById(R.id.textView2);
+        editText = (EditText) findViewById(R.id.editText2);
+
 
         // Create the button
         buttonRssi = (Button) findViewById(R.id.buttonRSSI);
+
+        // Create the Start data collcetion button
+        buttonStart = (Button) findViewById(R.id.button3);
+
+        // Create the Stop data collcetion button
+        buttonStop = (Button) findViewById(R.id.button4);
 
         // Set the sensor manager
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -102,10 +136,68 @@ public class MainActivity extends Activity implements SensorEventListener {
                         + "\n\tLocal Time = " + System.currentTimeMillis());
             }
         });
+        // Create a click listener for our start button.
+        buttonStart.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!started){
+                    //File creation to store data (uncomment when algorithm done)
+                    if (editText.getText().length()>2) {
+                        csvName = editText.getText().toString();
+                        textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
+                        started=true;
+                        try{
+                            outputStream = openFileOutput(csvName+".csv", Context.MODE_APPEND);
+                            outputStream.write("Hello World test!\n".getBytes());
+                        } catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    } else {
+                        textView.setText("Please enter a suitable string more than 2 characters");
+                    }
+                } else {
+                    textView.setText(csvName + ".csv is running");
+                }
+                editText.setText("");
+            }
+        });
+        // Create a click listener for our button.
+        buttonStop.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (started) {
+                    textView.setText(csvName + ".csv has been created.");
+                    try {
+                        outputStream.write("Hello World test!\n".getBytes());
+                        outputStream.close();
+                        started = false;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    csvName = "";
+                }else {
+                    textView.setText("Nothing is running");
+                }
+            }
+        });
     }
 
     // onResume() registers the accelerometer for listening the events
     protected void onResume() {
+        //handler to save data into csv file every 1 second (https://stackoverflow.com/questions/11434056/how-to-run-a-method-every-x-seconds)
+        h.postDelayed( runnable = new Runnable() {
+            public void run() {
+                //do something
+                if(started){
+                    try {
+                        outputStream.write("10-Hello World test!\n".getBytes());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                h.postDelayed(runnable, delay);
+            }
+        }, delay);
         super.onResume();
         sensorManager.registerListener(this, accelerometer,
                 SensorManager.SENSOR_DELAY_NORMAL);
@@ -113,6 +205,8 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     // onPause() unregisters the accelerometer for stop listening the events
     protected void onPause() {
+        //pause recording data to csv file when app closed
+        h.removeCallbacks(runnable); //stop handler when activity not visible
         super.onPause();
         sensorManager.unregisterListener(this);
     }
