@@ -1,6 +1,7 @@
 package com.example.myfirstapp;
 
 import android.app.Activity;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -17,9 +18,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.List;
 
 /**
  * Smart Phone Sensing Example 2. Working with sensors.
@@ -68,7 +74,7 @@ public class MainActivity extends Activity implements SensorEventListener {
      */
     private TextView currentX, currentY, currentZ, textRssi; //took out titleAcc from example 2
 
-    Button buttonRssi, buttonStart, buttonStop;
+    Button buttonRssi, buttonStart, buttonStop, buttonInitial;
 
     FileOutputStream outputStream;
 
@@ -104,6 +110,9 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         // Create the Stop data collcetion button
         buttonStop = (Button) findViewById(R.id.button4);
+
+        // Create the Stop data collcetion button
+        buttonInitial = (Button) findViewById(R.id.button1);
 
         // Set the sensor manager
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -142,18 +151,20 @@ public class MainActivity extends Activity implements SensorEventListener {
             public void onClick(View v) {
                 if (!started){
                     //File creation to store data (uncomment when algorithm done)
-                    if (editText.getText().length()>2) {
+                    if (editText.getText().toString().contains("locate") ||
+                            editText.getText().toString().contains("motionW") ||
+                            editText.getText().toString().contains("motionS") ) {
                         csvName = editText.getText().toString();
                         textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
                         started=true;
                         try{
                             outputStream = openFileOutput(csvName+".csv", Context.MODE_APPEND);
-                            outputStream.write("Hello World test!\n".getBytes());
+                            //outputStream.write("Hello World test!\n".getBytes()); //for debugging
                         } catch(Exception e){
                             e.printStackTrace();
                         }
                     } else {
-                        textView.setText("Please enter a suitable string more than 2 characters");
+                        textView.setText("Please enter a suitable string containing 'locateCell#' or 'motionW/S'");
                     }
                 } else {
                     textView.setText(csvName + ".csv is running");
@@ -161,14 +172,14 @@ public class MainActivity extends Activity implements SensorEventListener {
                 editText.setText("");
             }
         });
-        // Create a click listener for our button.
+        // Create a click listener for our stop button.
         buttonStop.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (started) {
                     textView.setText(csvName + ".csv has been created.");
                     try {
-                        outputStream.write("Hello World test!\n".getBytes());
+                        //outputStream.write("Hello World test!\n".getBytes()); for debugging
                         outputStream.close();
                         started = false;
                     } catch (IOException e) {
@@ -178,6 +189,33 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }else {
                     textView.setText("Nothing is running");
                 }
+            }
+        });
+        // Create a click listener for our initial button.
+        //currently used for testing reading of csv
+        //how to read from internal storage https://stackoverflow.com/questions/14768191/how-do-i-read-the-file-content-from-the-internal-storage-android-app
+        buttonInitial.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FileInputStream fileInputStream = null;
+                try {
+                    fileInputStream = getApplicationContext().openFileInput("motion.csv");
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                StringBuilder sb = new StringBuilder();
+                String line;
+                try {
+                    while ((line = bufferedReader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                }
+                catch(Exception e) {
+                    e.printStackTrace();
+                }
+                textView.setText(sb);
             }
         });
     }
@@ -190,7 +228,25 @@ public class MainActivity extends Activity implements SensorEventListener {
                 //do something
                 if(started){
                     try {
-                        outputStream.write("10-Hello World test!\n".getBytes());
+                        //outputStream.write("10-Hello World test!\n".getBytes());//for debugging
+                        if (csvName.contains("motionW")){
+                            outputStream.write(("X="+Float.toString(aX)+",Y="+Float.toString(aY)+
+                                    ",Z="+Float.toString(aZ)+",Walk,\n").getBytes());
+                        } else if(csvName.contains("motionS")){
+                            outputStream.write(("X="+Float.toString(aX)+",Y="+Float.toString(aY)+
+                                    ",Z="+Float.toString(aZ)+",Still,\n").getBytes());
+                        } else if (csvName.contains("locate")){
+                            String[] cellNo = csvName.split("Cell"); //cellNo[1] is cell no
+                            // Start a wifi scan.
+                            wifiManager.startScan();
+                            // Store results in a list.
+                            List<ScanResult> scanResults = wifiManager.getScanResults();
+                            // Write results to a label
+                            for (ScanResult scanResult : scanResults) {
+                                outputStream.write(("BSSID="+scanResult.BSSID+",RSSI="+
+                                        scanResult.level+","+cellNo[1]+",\n").getBytes());
+                            }
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
