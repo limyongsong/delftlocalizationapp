@@ -172,7 +172,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     textView.setText(csvName + ".csv has been created.");
                     try {
                         //outputStream.write("Hello World test!\n".getBytes()); for debugging
-                        if (csvName.contains("locate")){
+                        if (csvName.contains("locate")) {
                             outputStream.write(aps.toString().getBytes());
                             aps.clear();
                         }
@@ -236,30 +236,37 @@ public class MainActivity extends Activity implements SensorEventListener {
             @Override
             public void onClick(View v) {
                 if (!started) {
-                    int[] answer = {0, 0, 0, 0, 0, 0}; //ans[0]=predicted still,when still,
-                    //ans[1]=predicted walk, when still,
-                    //ans[2]=total actual still,
-                    int[] temp = {0, 0, 0};
-                    int[] temp2 = {0,0,0};
-                    temp = checkMotionKNN("motionS.csv", "combinedSW.csv");
-                    temp2 = checkMotionKNN("motionW-1.csv", "combinedSW.csv");
-                    answer[0] = temp[0];
-                    answer[1] = temp[1];
-                    answer[2] = temp [2];
-                    answer[3] = temp2[0]; //predicted still, when walk
-                    answer[4] = temp2[1]; //predicted walk, when walk
-                    answer[5] = temp2[2]; //total actual walk
-                    textView.setText("Conf Matrix stored in internal storage\n");
-                    try {
-                        outputStream = openFileOutput("confMatMotion" + ".csv", Context.MODE_PRIVATE);
-                        outputStream.write(Arrays.toString(answer).getBytes());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        outputStream.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    if (editText.getText().toString().contains("KNN")) {
+                        int[] answer = {0, 0, 0, 0, 0, 0}; //ans[0]=predicted still,when still,
+                        //ans[1]=predicted walk, when still,
+                        //ans[2]=total actual still,
+                        int[] temp = {0, 0, 0};
+                        int[] temp2 = {0, 0, 0};
+                        temp = checkMotionKNN("motionS-2.csv", "combinedSW.csv");
+                        temp2 = checkMotionKNN("motionW-2.csv", "combinedSW.csv");
+                        answer[0] = temp[0];
+                        answer[1] = temp[1];
+                        answer[2] = temp[2];
+                        answer[3] = temp2[0]; //predicted still, when walk
+                        answer[4] = temp2[1]; //predicted walk, when walk
+                        answer[5] = temp2[2]; //total actual walk
+                        textView.setText("Conf Matrix stored in internal storage\n");
+                        editText.setText("");
+                        try {
+                            outputStream = openFileOutput("confMatMotion" + ".csv", Context.MODE_PRIVATE);
+                            outputStream.write(Arrays.toString(answer).getBytes());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            outputStream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    } else if (editText.getText().toString().contains("Bayes")) {
+                        textView.setText("WIP");
+                    } else {
+                        textView.setText("Please enter string with 'KNN' or 'Bayes', which you want to test\n");
                     }
                 }
             }
@@ -269,12 +276,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             @Override
             public void onClick(View v) {
                 if (editText.getText().toString().contains("KNN")) {
-                    prepareMotionDataKNN("motionS-1.csv", "motionW-1.csv");
-                    prepareLocateDataKNN("locateCell12.csv","locateCell13.csv",
-                            "locateCell14.csv","locateCell15.csv");
-                    //checkMotionKNN("motionS.csv","combinedSW.csv");
-                    //checkMotionKNN("motionW-1.csv","combinedSW.csv");
-                    textView.setText("Trained KNN");
+                    prepareMotionDataKNN("motionS.csv", "motionW.csv");
+                    prepareLocateDataKNN("locateCell2.csv", "locateCell6.csv",
+                            "locateCell9.csv", "locateCell15.csv");
+                    textView.setText("Trained KNN-SW&Cell2,6,9,15");
                     editText.setText("");
                 } else if (editText.getText().toString().contains("Bayes")) {
                     textView.setText("WIP");
@@ -299,7 +304,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                                     "," + Float.toString(aZ_Range) + ",Walk,\n").getBytes());
                             refreshed = true;
                         } else if (csvName.contains("motionS")) {
-                            outputStream.write(( Float.toString(aX_Range) + "," + Float.toString(aY_Range) +
+                            outputStream.write((Float.toString(aX_Range) + "," + Float.toString(aY_Range) +
                                     "," + Float.toString(aZ_Range) + ",Still,\n").getBytes());
                             refreshed = true;
                         } else if (csvName.contains("locate")) {
@@ -311,7 +316,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             // Write results to a label
                             for (ScanResult scanResult : scanResults) {
                                 //refine result abit
-                                if(!aps.contains("BSSID=" + scanResult.BSSID + ",Cell=" + cellNo[1] + ",\n")) {
+                                if (!aps.contains("BSSID=" + scanResult.BSSID + ",Cell=" + cellNo[1] + ",\n")) {
                                     aps.add("BSSID=" + scanResult.BSSID + ",Cell=" + cellNo[1] + ",\n");
                                 }
                             }
@@ -372,7 +377,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
 
     private int[] checkMotionKNN(String fileTest, String fileTrain) {
-        int[] checked={0,0,0};
+        int[] checked = {0, 0, 0};
         //do euclidean dist: compare difference x,y,z then add tgt, knn sqrt sample size
         StringBuilder sbTest = new StringBuilder();
         sbTest = combiner(fileTest, sbTest);
@@ -380,52 +385,52 @@ public class MainActivity extends Activity implements SensorEventListener {
         sbTrain = combiner(fileTrain, sbTrain);
         String[] leftoverTest;
         String[] leftoverTrain;
-        double x1,x2,x,y1,y2,y,z1,z2,z;
-        ArrayList <Pair <String,Double> > toSort =
-                new ArrayList <Pair <String,Double> > ();
+        double x1, x2, x, y1, y2, y, z1, z2, z;
+        ArrayList<Pair<String, Double>> toSort =
+                new ArrayList<Pair<String, Double>>();
         leftoverTest = sbTest.toString().split(",");
         leftoverTrain = sbTrain.toString().split(",");
-        int i=0;
-        int k=0;
+        int i = 0;
+        int k = 0;
         int totalCountStill = 0;
         int totalCountWalk = 0;
         //K is the Kth nearest neighbours
         int numSamples = toSort.size();
         int K = (int) Math.sqrt(numSamples);
-        if (K%2==0){
+        if (K % 2 == 0) {
             K++; //ensure K is always odd
         }
         do {
             x1 = Float.parseFloat(leftoverTest[i]);
-            y1 = Float.parseFloat(leftoverTest[i+1]);
-            z1 = Float.parseFloat(leftoverTest[i+2]);
-            do{
+            y1 = Float.parseFloat(leftoverTest[i + 1]);
+            z1 = Float.parseFloat(leftoverTest[i + 2]);
+            do {
                 x2 = Float.parseFloat(leftoverTrain[k]);
                 x = Math.sqrt(Math.pow(x1 - x2, 2));
-                y2 = Float.parseFloat(leftoverTrain[k+1]);
+                y2 = Float.parseFloat(leftoverTrain[k + 1]);
                 y = Math.sqrt(Math.pow(y1 - y2, 2));
-                z2 = Float.parseFloat(leftoverTrain[k+2]);
+                z2 = Float.parseFloat(leftoverTrain[k + 2]);
                 z = Math.sqrt(Math.pow(z1 - z2, 2));
-                toSort.add(new Pair <String,Double> (leftoverTrain[k+3], x+y+z));
-                k=k+4;
-            }while (k<leftoverTrain.length);
+                toSort.add(new Pair<String, Double>(leftoverTrain[k + 3], x + y + z));
+                k = k + 4;
+            } while (k < leftoverTrain.length);
             int countStill = 0;
             int countWalk = 0;
-            for (int j=0; j<K; j++) {
+            for (int j = 0; j < K; j++) {
                 if (toSort.get(j).first.equals("Still")) {
                     countStill++;
                 } else {
                     countWalk++;
                 }
             }
-            if (countWalk>countStill){
+            if (countWalk > countStill) {
                 totalCountWalk++;
             } else {
                 totalCountStill++;
             }
-            k=0;
-            i=i+4;
-        }while(i < leftoverTest.length);
+            k = 0;
+            i = i + 4;
+        } while (i < leftoverTest.length);
         //sort the list to lowest distance on top
         Collections.sort(toSort, new Comparator<Pair<String, Double>>() {
             @Override
@@ -438,7 +443,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         checked[0] = totalCountStill;//predicted still
         checked[1] = totalCountWalk;//predicted walk
-        checked[2] = leftoverTest.length/4; //actual still/walk 
+        checked[2] = leftoverTest.length / 4; //actual still/walk
 
 
         return checked;
