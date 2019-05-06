@@ -12,6 +12,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
+import android.util.Pair;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -25,10 +26,15 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.lang.Math;
 
 /**
  * Smart Phone Sensing Example 2. Working with sensors.
@@ -64,7 +70,7 @@ public class MainActivity extends Activity implements SensorEventListener {
      */
     private float aZ = 0;
 
-    private float aX_Range=0, aY_Range=0, aZ_Range=0, aX_Max=0, aY_Max=0, aZ_Max=0, aX_Min=0, aY_Min=0, aZ_Min=0;
+    private float aX_Range = 0, aY_Range = 0, aZ_Range = 0, aX_Max = 0, aY_Max = 0, aZ_Max = 0, aX_Min = 0, aY_Min = 0, aZ_Min = 0;
     /**
      * The text view.
      */
@@ -78,9 +84,11 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     FileOutputStream outputStream;
 
-    boolean started=false, refreshed=true;
+    boolean started = false, refreshed = true;
 
-    String csvName="";
+    String csvName = "";
+
+    ArrayList<String> aps = new ArrayList<String>();
 
     //used to get data every certain time interval
     Handler h = new Handler();
@@ -133,18 +141,18 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonStart.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!started){
+                if (!started) {
                     //File creation to store data (uncomment when algorithm done)
                     if (editText.getText().toString().contains("locate") ||
                             editText.getText().toString().contains("motionW") ||
-                            editText.getText().toString().contains("motionS") ) {
+                            editText.getText().toString().contains("motionS")) {
                         csvName = editText.getText().toString();
                         textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
-                        started=true;
-                        try{
-                            outputStream = openFileOutput(csvName+".csv", Context.MODE_PRIVATE);
+                        started = true;
+                        try {
+                            outputStream = openFileOutput(csvName + ".csv", Context.MODE_PRIVATE);
                             //outputStream.write("Hello World test!\n".getBytes()); //for debugging
-                        } catch(Exception e){
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                     } else {
@@ -164,14 +172,23 @@ public class MainActivity extends Activity implements SensorEventListener {
                     textView.setText(csvName + ".csv has been created.");
                     try {
                         //outputStream.write("Hello World test!\n".getBytes()); for debugging
+                        if (csvName.contains("locate")){
+                            outputStream.write(aps.toString().getBytes());
+                            aps.clear();
+                        }
                         outputStream.close();
                         started = false;
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                     csvName = "";
-                }else {
+                } else {
                     textView.setText("Nothing is running");
+                }
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         });
@@ -195,8 +212,12 @@ public class MainActivity extends Activity implements SensorEventListener {
                     while ((line = bufferedReader.readLine()) != null) {
                         sb.append(line);
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                catch(Exception e) {
+                try {
+                    fileInputStream.close();
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
                 textView.setText("Used for Bug testing now\n" + sb);
@@ -214,17 +235,19 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonTest.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                checkMotionKNN("motionS-1.csv","motionS-2.csv");
-                checkMotionKNN("motionW-1.csv","motionW-2.csv");
-                textView.setText("WIP\n");
-                //test and create confusionmatrix csv file in internal storage
-/*                csvName = editText.getText().toString();
-                textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
-                started=true;
+/*                int[] answer = {}; //ans[0]=predicted still,when still,
+                                    //ans[1]=predicted walk, when still,
+                                    //ans[2]=total actual still,
+                int[] temp = {};
+                answer = checkMotionKNN("motionS.csv","combinedSW.csv");
+                temp = checkMotionKNN("motionW-1.csv","combinedSW.csv");
+                answer[3] = temp[0]; //predicted still, when walk
+                answer[4] = temp[1]; //predicted walk, when walk
+                answer[5] = temp[2]; //total actual walk
+                textView.setText("Conf Matrix stored in internal storage\n");
                 try{
-                    outputStream = openFileOutput(csvName+".csv", Context.MODE_APPEND);
-                    outputStream.write(("X="+Float.toString(aX)+",Y="+Float.toString(aY)+
-                            ",Z="+Float.toString(aZ)+",Walk,\n").getBytes());
+                    outputStream = openFileOutput("confMatMotion"+".csv", Context.MODE_APPEND);
+                    outputStream.write(answer.toString().getBytes());
                 } catch(Exception e){
                     e.printStackTrace();
                 }
@@ -239,12 +262,17 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonTrain.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (editText.getText().toString().contains("KNN")){
-
-                } else if (editText.getText().toString().contains("Bayes")){
+                if (editText.getText().toString().contains("KNN")) {
+                    prepareMotionDataKNN("motionS-1.csv", "motionW-1.csv");
+                    prepareLocateDataKNN("locateCell12.csv","locateCell13.csv",
+                            "locateCell14.csv","locateCell15.csv");
+                    checkMotionKNN("motionS.csv","combinedSW.csv");
+                    //checkMotionKNN("motionW-1.csv","combinedSW.csv");
+                    //textView.setText("Trained KNN");
+                    editText.setText("");
+                } else if (editText.getText().toString().contains("Bayes")) {
                     textView.setText("WIP");
-                }
-                else {
+                } else {
                     textView.setText("Please enter string with 'KNN' or 'Bayes', which you want to train\n");
                 }
             }
@@ -254,21 +282,21 @@ public class MainActivity extends Activity implements SensorEventListener {
     // onResume() registers the accelerometer for listening the events
     protected void onResume() {
         //handler to save data into csv file every 1 second (https://stackoverflow.com/questions/11434056/how-to-run-a-method-every-x-seconds)
-        h.postDelayed( runnable = new Runnable() {
+        h.postDelayed(runnable = new Runnable() {
             public void run() {
                 //do something
-                if(started){
+                if (started) {
                     try {
                         //outputStream.write("10-Hello World test!\n".getBytes());//for debugging
-                        if (csvName.contains("motionW")){
-                            outputStream.write(("X="+Float.toString(aX_Range)+",Y="+Float.toString(aY_Range)+
-                                    ",Z="+Float.toString(aZ_Range)+",Walk,\n").getBytes());
+                        if (csvName.contains("motionW")) {
+                            outputStream.write((Float.toString(aX_Range) + "," + Float.toString(aY_Range) +
+                                    "," + Float.toString(aZ_Range) + ",Walk,\n").getBytes());
                             refreshed = true;
-                        } else if(csvName.contains("motionS")){
-                            outputStream.write(("X="+Float.toString(aX_Range)+",Y="+Float.toString(aY_Range)+
-                                    ",Z="+Float.toString(aZ_Range)+",Still,\n").getBytes());
+                        } else if (csvName.contains("motionS")) {
+                            outputStream.write(( Float.toString(aX_Range) + "," + Float.toString(aY_Range) +
+                                    "," + Float.toString(aZ_Range) + ",Still,\n").getBytes());
                             refreshed = true;
-                        } else if (csvName.contains("locate")){
+                        } else if (csvName.contains("locate")) {
                             String[] cellNo = csvName.split("Cell"); //cellNo[1] is cell no
                             // Start a wifi scan.
                             wifiManager.startScan();
@@ -276,8 +304,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                             List<ScanResult> scanResults = wifiManager.getScanResults();
                             // Write results to a label
                             for (ScanResult scanResult : scanResults) {
-                                outputStream.write(("BSSID="+scanResult.BSSID+",RSSI="+
-                                        scanResult.level+",Cell="+cellNo[1]+",\n").getBytes());
+                                //refine result abit
+                                if(!aps.contains("BSSID=" + scanResult.BSSID + ",Cell=" + cellNo[1] + ",\n")) {
+                                    aps.add("BSSID=" + scanResult.BSSID + ",Cell=" + cellNo[1] + ",\n");
+                                }
                             }
                         }
                     } catch (IOException e) {
@@ -328,45 +358,156 @@ public class MainActivity extends Activity implements SensorEventListener {
             aX_Min = Math.min(aX_Min, aX);
             aY_Min = Math.min(aY_Min, aY);
             aZ_Min = Math.min(aZ_Min, aZ);
-            aX_Range = aX_Max-aX_Min;
-            aY_Range = aY_Max-aY_Min;
-            aZ_Range = aZ_Max-aZ_Min;
+            aX_Range = aX_Max - aX_Min;
+            aY_Range = aY_Max - aY_Min;
+            aZ_Range = aZ_Max - aZ_Min;
         }
         refreshed = false;
     }
 
-    private Map checkMotionKNN(String fileTest, String fileTrain){
-        Map<String, String> checked = new HashMap<String, String>();
-        String valueS,valueW,valueOS,valueOW;
-        int valS=0,valW=0,valOS=0,valOW=0;
-        //code to read file and compare for knn here
-        //do euclidean dist? compare difference x,y,z then add tgt
-        valueS = Integer.toString(valS);
-        valueW = Integer.toString(valW);
-        valueOS = Integer.toString(valOS);
-        valueOW = Integer.toString(valOW);
-        checked.put("Still",valueS);
-        checked.put("Walk",valueW);
-        checked.put("ObsStill",valueOS);
-        checked.put("ObsWalk",valueOW);
+    private int[] checkMotionKNN(String fileTest, String fileTrain) {
+        int[] checked={};
+        //do euclidean dist: compare difference x,y,z then add tgt, knn sqrt sample size
+        StringBuilder sbTest = new StringBuilder();
+        sbTest = combiner(fileTest, sbTest);
+        StringBuilder sbTrain = new StringBuilder();
+        sbTrain = combiner(fileTrain, sbTrain);
+        String[] leftoverTest;
+        String[] leftoverTrain;
+        double x1,x2,x,y1,y2,y,z1,z2,z;
+        ArrayList <Pair <String,Double> > toSort =
+                new ArrayList <Pair <String,Double> > ();
+        leftoverTest = sbTest.toString().split(",");
+        leftoverTrain = sbTrain.toString().split(",");
+        int i=0;
+        int k=0;
+        do {
+            x1 = Float.parseFloat(leftoverTest[i]);
+            y1 = Float.parseFloat(leftoverTest[i+1]);
+            z1 = Float.parseFloat(leftoverTest[i+2]);
+            do{
+                x2 = Float.parseFloat(leftoverTrain[k]);
+                x = Math.sqrt(Math.pow(x1 - x2, 2));
+                y2 = Float.parseFloat(leftoverTrain[k+1]);
+                y = Math.sqrt(Math.pow(y1 - y2, 2));
+                z2 = Float.parseFloat(leftoverTrain[k+2]);
+                z = Math.sqrt(Math.pow(z1 - z2, 2));
+                toSort.add(new Pair <String,Double> (leftoverTrain[k+3], x+y+z));
+                k=k+4;
+            }while (k<leftoverTrain.length);
+            k=0;
+            i=i+4;
+        }while(i < leftoverTest.length);
+        //sort the list to lowest distance on top
+        Collections.sort(toSort, new Comparator<Pair<String, Double>>() {
+            @Override
+            public int compare(final Pair<String, Double> o1, final Pair<String, Double> o2) {
+                return o1.second.compareTo(o2.second);
+            }
+        });
+        textView.setText(toSort.toString()); //for debugging
+        textView.setText(Integer.toString(leftoverTrain.length)); //for debugging
+        //K is the Kth nearest neighbours
+        int numSamples = toSort.size();
+        int K = (int) Math.sqrt(numSamples);
+        if (K%2==0){
+            K++; //ensure K is alwasy odd
+        }
+        int countStill = 0;
+        int countWalk = 0;
+        int totalCountStill = 0;
+        int totalCountWalk = 0;
+        for (int j=0; j<K; j++) {
+            if (toSort.get(j).first.equals("Still")) {
+                countStill++;
+            } else {
+                countWalk++;
+            }
+        }
+        if (countWalk>countStill){
+            totalCountWalk++;
+        } else {
+            totalCountStill++;
+        }
+
+/*        checked[0] = totalCountStill;//predicted still
+        checked[1] = totalCountWalk;//predicted walk
+        checked[2] = leftoverTest.length/4; //actual still/walk*/
+
 
         return checked;
     }
 
-    private int[][] checkCellKNN(String fileTest, String fileTrain){
-        int checked[][]={{}}; //4x4 confusion matrix
+    private int[][] checkCellKNN(String fileTest, String fileTrain) {
+        int[][] checked = {{}}; //4x4 confusion matrix
         //read file and do the hamming dist
         return checked;
     }
 
-
-    private void prepareLocateDataKNN(String fileTest, String fileTrain){
-        File test = new File(getApplicationContext().getFilesDir(), fileTest);
-        File train = new File(getApplicationContext().getFilesDir(), fileTrain);
-        if (test.exists()&&train.exists()){
-
-        } else{
-
+    //combines still and walking training data
+    private void prepareMotionDataKNN(String file1, String file2) {
+        StringBuilder sb = new StringBuilder();
+        sb = combiner(file1, sb);
+        sb = combiner(file2, sb);
+        try {
+            outputStream = openFileOutput("combinedSW" + ".csv", Context.MODE_APPEND);
+            outputStream.write(sb.toString().getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
+
+    //combines all the cell training info
+    private void prepareLocateDataKNN(String file1, String file2, String file3, String file4) {
+        StringBuilder sb = new StringBuilder();
+        sb = combiner(file1, sb);
+        sb = combiner(file2, sb);
+        sb = combiner(file3, sb);
+        sb = combiner(file4, sb);
+        try {
+            outputStream = openFileOutput("combinedCells" + ".csv", Context.MODE_APPEND);
+            outputStream.write(sb.toString().getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private StringBuilder combiner(String file, StringBuilder sb) {
+        File first = new File(getApplicationContext().getFilesDir(), file);
+        if (first.exists()) {
+            FileInputStream fileInputStream = null;
+            try {
+                fileInputStream = getApplicationContext().openFileInput(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            String line;
+            try {
+                while ((line = bufferedReader.readLine()) != null) {
+                    sb.append(line);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                fileInputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return sb;
+    }
+
 }
