@@ -25,7 +25,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 /**
  * Smart Phone Sensing Example 2. Working with sensors.
@@ -60,6 +63,8 @@ public class MainActivity extends Activity implements SensorEventListener {
      * Accelerometer z value
      */
     private float aZ = 0;
+
+    private float aX_Range=0, aY_Range=0, aZ_Range=0, aX_Max=0, aY_Max=0, aZ_Max=0, aX_Min=0, aY_Min=0, aZ_Min=0;
     /**
      * The text view.
      */
@@ -69,16 +74,11 @@ public class MainActivity extends Activity implements SensorEventListener {
      */
     private EditText editText;
 
-    /**
-     * Text fields to show the sensor values.
-     */
-    private TextView currentX, currentY, currentZ, textRssi; //took out titleAcc from example 2
-
-    Button buttonRssi, buttonStart, buttonStop, buttonInitial;
+    Button buttonStart, buttonStop, buttonInitial, buttonLocateMe, buttonTest, buttonTrain;
 
     FileOutputStream outputStream;
 
-    boolean started=false;
+    boolean started=false, refreshed=true;
 
     String csvName="";
 
@@ -92,27 +92,23 @@ public class MainActivity extends Activity implements SensorEventListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Create the text views.
-        currentX = (TextView) findViewById(R.id.currentX);
-        currentY = (TextView) findViewById(R.id.currentY);
-        currentZ = (TextView) findViewById(R.id.currentZ);
         //titleAcc = (TextView) findViewById(R.id.titleAcc);
-        textRssi = (TextView) findViewById(R.id.textRSSI);
         textView = (TextView) findViewById(R.id.textView2);
         editText = (EditText) findViewById(R.id.editText2);
 
 
-        // Create the button
-        buttonRssi = (Button) findViewById(R.id.buttonRSSI);
-
         // Create the Start data collcetion button
         buttonStart = (Button) findViewById(R.id.button3);
-
         // Create the Stop data collcetion button
         buttonStop = (Button) findViewById(R.id.button4);
-
-        // Create the Stop data collcetion button
+        // Create the Initial data collcetion button
         buttonInitial = (Button) findViewById(R.id.button1);
+        // Create the Locate Me data collcetion button
+        buttonLocateMe = (Button) findViewById(R.id.button2);
+        // Create the Initial data collcetion button
+        buttonTest = (Button) findViewById(R.id.button5);
+        // Create the Locate Me data collcetion button
+        buttonTrain = (Button) findViewById(R.id.button6);
 
         // Set the sensor manager
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -133,18 +129,6 @@ public class MainActivity extends Activity implements SensorEventListener {
         // Set the wifi manager
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
-        // Create a click listener for our button.
-        buttonRssi.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // get the wifi info.
-                wifiInfo = wifiManager.getConnectionInfo();
-                // update the text.
-                textRssi.setText("\n\tSSID = " + wifiInfo.getSSID()
-                        + "\n\tRSSI = " + wifiInfo.getRssi()
-                        + "\n\tLocal Time = " + System.currentTimeMillis());
-            }
-        });
         // Create a click listener for our start button.
         buttonStart.setOnClickListener(new OnClickListener() {
             @Override
@@ -158,7 +142,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
                         started=true;
                         try{
-                            outputStream = openFileOutput(csvName+".csv", Context.MODE_APPEND);
+                            outputStream = openFileOutput(csvName+".csv", Context.MODE_PRIVATE);
                             //outputStream.write("Hello World test!\n".getBytes()); //for debugging
                         } catch(Exception e){
                             e.printStackTrace();
@@ -215,7 +199,54 @@ public class MainActivity extends Activity implements SensorEventListener {
                 catch(Exception e) {
                     e.printStackTrace();
                 }
-                textView.setText(sb);
+                textView.setText("Used for Bug testing now\n" + sb);
+            }
+        });
+        // Create a click listener for our LocateMe button, to see which cell we are at, can iterate
+        buttonLocateMe.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //locate user
+                textView.setText("WIP\n");
+            }
+        });
+        // Create a click listener for our Test button, to get confusion matrix.
+        buttonTest.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                checkMotionKNN("motionS-1.csv","motionS-2.csv");
+                checkMotionKNN("motionW-1.csv","motionW-2.csv");
+                textView.setText("WIP\n");
+                //test and create confusionmatrix csv file in internal storage
+/*                csvName = editText.getText().toString();
+                textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
+                started=true;
+                try{
+                    outputStream = openFileOutput(csvName+".csv", Context.MODE_APPEND);
+                    outputStream.write(("X="+Float.toString(aX)+",Y="+Float.toString(aY)+
+                            ",Z="+Float.toString(aZ)+",Walk,\n").getBytes());
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }*/
+            }
+        });
+        // Create a click listener for our train button.
+        buttonTrain.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (editText.getText().toString().contains("KNN")){
+
+                } else if (editText.getText().toString().contains("Bayes")){
+                    textView.setText("WIP");
+                }
+                else {
+                    textView.setText("Please enter string with 'KNN' or 'Bayes', which you want to train\n");
+                }
             }
         });
     }
@@ -230,11 +261,13 @@ public class MainActivity extends Activity implements SensorEventListener {
                     try {
                         //outputStream.write("10-Hello World test!\n".getBytes());//for debugging
                         if (csvName.contains("motionW")){
-                            outputStream.write(("X="+Float.toString(aX)+",Y="+Float.toString(aY)+
-                                    ",Z="+Float.toString(aZ)+",Walk,\n").getBytes());
+                            outputStream.write(("X="+Float.toString(aX_Range)+",Y="+Float.toString(aY_Range)+
+                                    ",Z="+Float.toString(aZ_Range)+",Walk,\n").getBytes());
+                            refreshed = true;
                         } else if(csvName.contains("motionS")){
-                            outputStream.write(("X="+Float.toString(aX)+",Y="+Float.toString(aY)+
-                                    ",Z="+Float.toString(aZ)+",Still,\n").getBytes());
+                            outputStream.write(("X="+Float.toString(aX_Range)+",Y="+Float.toString(aY_Range)+
+                                    ",Z="+Float.toString(aZ_Range)+",Still,\n").getBytes());
+                            refreshed = true;
                         } else if (csvName.contains("locate")){
                             String[] cellNo = csvName.split("Cell"); //cellNo[1] is cell no
                             // Start a wifi scan.
@@ -244,7 +277,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             // Write results to a label
                             for (ScanResult scanResult : scanResults) {
                                 outputStream.write(("BSSID="+scanResult.BSSID+",RSSI="+
-                                        scanResult.level+","+cellNo[1]+",\n").getBytes());
+                                        scanResult.level+",Cell="+cellNo[1]+",\n").getBytes());
                             }
                         }
                     } catch (IOException e) {
@@ -274,28 +307,66 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        currentX.setText("0.0");
-        currentY.setText("0.0");
-        currentZ.setText("0.0");
-
         // get the the x,y,z values of the accelerometer
-        aX = event.values[0];
-        aY = event.values[1];
-        aZ = event.values[2];
-
-        // display the current x,y,z accelerometer values
-        currentX.setText(Float.toString(aX));
-        currentY.setText(Float.toString(aY));
-        currentZ.setText(Float.toString(aZ));
-
-/*        if ((Math.abs(aX) > Math.abs(aY)) && (Math.abs(aX) > Math.abs(aZ))) {
-            titleAcc.setTextColor(Color.RED);
+        if (refreshed) {
+            aX = event.values[0];
+            aY = event.values[1];
+            aZ = event.values[2];
+            aX_Max = aX;
+            aY_Max = aY;
+            aZ_Max = aZ;
+            aX_Min = aX;
+            aY_Min = aY;
+            aZ_Min = aZ;
+        } else {
+            aX = event.values[0];
+            aY = event.values[1];
+            aZ = event.values[2];
+            aX_Max = Math.max(aX_Max, aX);
+            aY_Max = Math.max(aY_Max, aY);
+            aZ_Max = Math.max(aZ_Max, aZ);
+            aX_Min = Math.min(aX_Min, aX);
+            aY_Min = Math.min(aY_Min, aY);
+            aZ_Min = Math.min(aZ_Min, aZ);
+            aX_Range = aX_Max-aX_Min;
+            aY_Range = aY_Max-aY_Min;
+            aZ_Range = aZ_Max-aZ_Min;
         }
-        if ((Math.abs(aY) > Math.abs(aX)) && (Math.abs(aY) > Math.abs(aZ))) {
-            titleAcc.setTextColor(Color.BLUE);
+        refreshed = false;
+    }
+
+    private Map checkMotionKNN(String fileTest, String fileTrain){
+        Map<String, String> checked = new HashMap<String, String>();
+        String valueS,valueW,valueOS,valueOW;
+        int valS=0,valW=0,valOS=0,valOW=0;
+        //code to read file and compare for knn here
+        //do euclidean dist? compare difference x,y,z then add tgt
+        valueS = Integer.toString(valS);
+        valueW = Integer.toString(valW);
+        valueOS = Integer.toString(valOS);
+        valueOW = Integer.toString(valOW);
+        checked.put("Still",valueS);
+        checked.put("Walk",valueW);
+        checked.put("ObsStill",valueOS);
+        checked.put("ObsWalk",valueOW);
+
+        return checked;
+    }
+
+    private int[][] checkCellKNN(String fileTest, String fileTrain){
+        int checked[][]={{}}; //4x4 confusion matrix
+        //read file and do the hamming dist
+        return checked;
+    }
+
+
+    private void prepareLocateDataKNN(String fileTest, String fileTrain){
+        File test = new File(getApplicationContext().getFilesDir(), fileTest);
+        File train = new File(getApplicationContext().getFilesDir(), fileTrain);
+        if (test.exists()&&train.exists()){
+
+        } else{
+
         }
-        if ((Math.abs(aZ) > Math.abs(aY)) && (Math.abs(aZ) > Math.abs(aX))) {
-            titleAcc.setTextColor(Color.GREEN);
-        }*/
     }
 }
