@@ -200,7 +200,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             public void onClick(View v) {
                 FileInputStream fileInputStream = null;
                 try {
-                    fileInputStream = getApplicationContext().openFileInput("motion.csv");
+                    fileInputStream = getApplicationContext().openFileInput("motionS.csv");
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -366,7 +366,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
 
     private int[] checkMotionKNN(String fileTest, String fileTrain) {
-        int[] checked={};
+        int[] checked={0,0,0};
         //do euclidean dist: compare difference x,y,z then add tgt, knn sqrt sample size
         StringBuilder sbTest = new StringBuilder();
         sbTest = combiner(fileTest, sbTest);
@@ -406,7 +406,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
         });
         textView.setText(toSort.toString()); //for debugging
-        textView.setText(Integer.toString(leftoverTrain.length)); //for debugging
+        //textView.setText(Integer.toString(leftoverTrain.length)); //for debugging
         //K is the Kth nearest neighbours
         int numSamples = toSort.size();
         int K = (int) Math.sqrt(numSamples);
@@ -430,9 +430,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             totalCountStill++;
         }
 
-/*        checked[0] = totalCountStill;//predicted still
+        checked[0] = totalCountStill;//predicted still
         checked[1] = totalCountWalk;//predicted walk
-        checked[2] = leftoverTest.length/4; //actual still/walk*///need to debug
+        checked[2] = leftoverTest.length/4; //actual still/walk //need to debug
 
 
         return checked;
