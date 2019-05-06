@@ -235,27 +235,33 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonTest.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-/*                int[] answer = {}; //ans[0]=predicted still,when still,
-                                    //ans[1]=predicted walk, when still,
-                                    //ans[2]=total actual still,
-                int[] temp = {};
-                answer = checkMotionKNN("motionS.csv","combinedSW.csv");
-                temp = checkMotionKNN("motionW-1.csv","combinedSW.csv");
-                answer[3] = temp[0]; //predicted still, when walk
-                answer[4] = temp[1]; //predicted walk, when walk
-                answer[5] = temp[2]; //total actual walk
-                textView.setText("Conf Matrix stored in internal storage\n");
-                try{
-                    outputStream = openFileOutput("confMatMotion"+".csv", Context.MODE_APPEND);
-                    outputStream.write(answer.toString().getBytes());
-                } catch(Exception e){
-                    e.printStackTrace();
+                if (!started) {
+                    int[] answer = {0, 0, 0, 0, 0, 0}; //ans[0]=predicted still,when still,
+                    //ans[1]=predicted walk, when still,
+                    //ans[2]=total actual still,
+                    int[] temp = {0, 0, 0};
+                    int[] temp2 = {0,0,0};
+                    temp = checkMotionKNN("motionS.csv", "combinedSW.csv");
+                    temp2 = checkMotionKNN("motionW-1.csv", "combinedSW.csv");
+                    answer[0] = temp[0];
+                    answer[1] = temp[1];
+                    answer[2] = temp [2];
+                    answer[3] = temp2[0]; //predicted still, when walk
+                    answer[4] = temp2[1]; //predicted walk, when walk
+                    answer[5] = temp2[2]; //total actual walk
+                    textView.setText("Conf Matrix stored in internal storage\n");
+                    try {
+                        outputStream = openFileOutput("confMatMotion" + ".csv", Context.MODE_PRIVATE);
+                        outputStream.write(Arrays.toString(answer).getBytes());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        outputStream.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }*/
             }
         });
         // Create a click listener for our train button.
@@ -266,9 +272,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                     prepareMotionDataKNN("motionS-1.csv", "motionW-1.csv");
                     prepareLocateDataKNN("locateCell12.csv","locateCell13.csv",
                             "locateCell14.csv","locateCell15.csv");
-                    checkMotionKNN("motionS.csv","combinedSW.csv");
+                    //checkMotionKNN("motionS.csv","combinedSW.csv");
                     //checkMotionKNN("motionW-1.csv","combinedSW.csv");
-                    //textView.setText("Trained KNN");
+                    textView.setText("Trained KNN");
                     editText.setText("");
                 } else if (editText.getText().toString().contains("Bayes")) {
                     textView.setText("WIP");
@@ -381,6 +387,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         leftoverTrain = sbTrain.toString().split(",");
         int i=0;
         int k=0;
+        int totalCountStill = 0;
+        int totalCountWalk = 0;
+        //K is the Kth nearest neighbours
+        int numSamples = toSort.size();
+        int K = (int) Math.sqrt(numSamples);
+        if (K%2==0){
+            K++; //ensure K is always odd
+        }
         do {
             x1 = Float.parseFloat(leftoverTest[i]);
             y1 = Float.parseFloat(leftoverTest[i+1]);
@@ -395,6 +409,20 @@ public class MainActivity extends Activity implements SensorEventListener {
                 toSort.add(new Pair <String,Double> (leftoverTrain[k+3], x+y+z));
                 k=k+4;
             }while (k<leftoverTrain.length);
+            int countStill = 0;
+            int countWalk = 0;
+            for (int j=0; j<K; j++) {
+                if (toSort.get(j).first.equals("Still")) {
+                    countStill++;
+                } else {
+                    countWalk++;
+                }
+            }
+            if (countWalk>countStill){
+                totalCountWalk++;
+            } else {
+                totalCountStill++;
+            }
             k=0;
             i=i+4;
         }while(i < leftoverTest.length);
@@ -407,32 +435,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         });
         textView.setText(toSort.toString()); //for debugging
         //textView.setText(Integer.toString(leftoverTrain.length)); //for debugging
-        //K is the Kth nearest neighbours
-        int numSamples = toSort.size();
-        int K = (int) Math.sqrt(numSamples);
-        if (K%2==0){
-            K++; //ensure K is alwasy odd
-        }
-        int countStill = 0;
-        int countWalk = 0;
-        int totalCountStill = 0;
-        int totalCountWalk = 0;
-        for (int j=0; j<K; j++) {
-            if (toSort.get(j).first.equals("Still")) {
-                countStill++;
-            } else {
-                countWalk++;
-            }
-        }
-        if (countWalk>countStill){
-            totalCountWalk++;
-        } else {
-            totalCountStill++;
-        }
 
         checked[0] = totalCountStill;//predicted still
         checked[1] = totalCountWalk;//predicted walk
-        checked[2] = leftoverTest.length/4; //actual still/walk //need to debug
+        checked[2] = leftoverTest.length/4; //actual still/walk 
 
 
         return checked;
@@ -446,39 +452,43 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     //combines still and walking training data
     private void prepareMotionDataKNN(String file1, String file2) {
-        StringBuilder sb = new StringBuilder();
-        sb = combiner(file1, sb);
-        sb = combiner(file2, sb);
-        try {
-            outputStream = openFileOutput("combinedSW" + ".csv", Context.MODE_PRIVATE);
-            outputStream.write(sb.toString().getBytes());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        try {
-            outputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!started) {
+            StringBuilder sb = new StringBuilder();
+            sb = combiner(file1, sb);
+            sb = combiner(file2, sb);
+            try {
+                outputStream = openFileOutput("combinedSW" + ".csv", Context.MODE_PRIVATE);
+                outputStream.write(sb.toString().getBytes());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     //combines all the cell training info
     private void prepareLocateDataKNN(String file1, String file2, String file3, String file4) {
-        StringBuilder sb = new StringBuilder();
-        sb = combiner(file1, sb);
-        sb = combiner(file2, sb);
-        sb = combiner(file3, sb);
-        sb = combiner(file4, sb);
-        try {
-            outputStream = openFileOutput("combinedCells" + ".csv", Context.MODE_PRIVATE);
-            outputStream.write(sb.toString().getBytes());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        try {
-            outputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!started) {
+            StringBuilder sb = new StringBuilder();
+            sb = combiner(file1, sb);
+            sb = combiner(file2, sb);
+            sb = combiner(file3, sb);
+            sb = combiner(file4, sb);
+            try {
+                outputStream = openFileOutput("combinedCells" + ".csv", Context.MODE_PRIVATE);
+                outputStream.write(sb.toString().getBytes());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
