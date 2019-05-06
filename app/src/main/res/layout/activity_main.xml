@@ -10,7 +10,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="248dp"
+        android:layout_height="wrap_content"
         android:background="#ffffff"
         android:gravity="center|top"
         android:orientation="horizontal">
@@ -40,25 +40,6 @@
                 android:text="0.0"
                 android:textSize="15dp" />
 
-            <TextView
-                android:id="@+id/titleRSSI"
-                android:layout_width="wrap_content"
-                android:layout_height="30dp"
-                android:layout_gravity="center"
-                android:text="WIFI RSSI"
-                android:textSize="20dp" />
-
-            <TextView
-                android:id="@+id/textRSSI"
-                android:layout_width="165dp"
-                android:layout_height="89dp"
-                android:text="" />
-
-            <Button
-                android:id="@+id/buttonRSSI"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Get RSSI" />
         </LinearLayout>
 
         <LinearLayout
@@ -86,99 +67,6 @@
                 android:text="Still"
                 android:textSize="15dp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginTop="10dp"
-                android:text="Acceleration Value:"
-                android:textSize="20dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="#ffffff"
-                android:gravity="center|top"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0.33"
-                    android:background="#ffffff"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="10dp"
-                        android:text="X-Axis"
-                        android:textSize="15dp" />
-
-                    <TextView
-                        android:id="@+id/currentX"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="10dp"
-                        android:text="0.0"
-                        android:textSize="15dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0.33"
-                    android:background="#ffffff"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="10dp"
-                        android:text="Y-Axis"
-                        android:textSize="15dp" />
-
-                    <TextView
-                        android:id="@+id/currentY"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="10dp"
-                        android:text="0.0"
-                        android:textSize="15dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0.33"
-                    android:background="#ffffff"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="10dp"
-                        android:text="Z-Axis"
-                        android:textSize="15dp" />
-
-                    <TextView
-                        android:id="@+id/currentZ"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="10dp"
-                        android:text="0.0"
-                        android:textSize="15dp" />
-                </LinearLayout>
-            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>
@@ -805,7 +693,7 @@
 
         <TableLayout
             android:layout_width="match_parent"
-            android:layout_height="118dp">
+            android:layout_height="wrap_content">
 
             <TableRow
                 android:layout_width="match_parent"
@@ -823,7 +711,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Iterate" />
+                    android:text="Locate Me" />
             </TableRow>
 
             <TableRow
@@ -844,6 +732,25 @@
                     android:layout_weight="1"
                     android:text="Stop Data Collection" />
 
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <Button
+                    android:id="@+id/button5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Test" />
+
+                <Button
+                    android:id="@+id/button6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Train" />
             </TableRow>
 
         </TableLayout>
@@ -871,7 +778,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="Type what type of training data you want to collect and press Start" />
+            android:text="Press any button to see instructions" />
 
     </LinearLayout>
 

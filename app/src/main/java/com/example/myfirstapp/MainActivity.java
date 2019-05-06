@@ -432,7 +432,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
 /*        checked[0] = totalCountStill;//predicted still
         checked[1] = totalCountWalk;//predicted walk
-        checked[2] = leftoverTest.length/4; //actual still/walk*/
+        checked[2] = leftoverTest.length/4; //actual still/walk*///need to debug
 
 
         return checked;
@@ -450,7 +450,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         sb = combiner(file1, sb);
         sb = combiner(file2, sb);
         try {
-            outputStream = openFileOutput("combinedSW" + ".csv", Context.MODE_APPEND);
+            outputStream = openFileOutput("combinedSW" + ".csv", Context.MODE_PRIVATE);
             outputStream.write(sb.toString().getBytes());
         } catch (Exception e) {
             e.printStackTrace();
@@ -470,7 +470,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         sb = combiner(file3, sb);
         sb = combiner(file4, sb);
         try {
-            outputStream = openFileOutput("combinedCells" + ".csv", Context.MODE_APPEND);
+            outputStream = openFileOutput("combinedCells" + ".csv", Context.MODE_PRIVATE);
             outputStream.write(sb.toString().getBytes());
         } catch (Exception e) {
             e.printStackTrace();
