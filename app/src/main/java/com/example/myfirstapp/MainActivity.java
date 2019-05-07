@@ -550,12 +550,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                     totalCount15++;
                 }
             }
-            else{
-                totalCount2=-1;
-                totalCount6=-1;
-                totalCount9=-1;
-                totalCount15=-1;
-            }
             k=0;
             i+=2; //due to 2 variables per sample
         } while(i<leftoverTest.length-1);
