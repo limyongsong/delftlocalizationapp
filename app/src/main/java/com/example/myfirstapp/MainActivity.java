@@ -231,24 +231,23 @@ public class MainActivity extends Activity implements SensorEventListener {
             public void onClick(View v) {
                 if (!started) {
                     if (editText.getText().toString().contains("KNN")) {
-                        int[] answer = {0, 0, 0, 0, 0, 0}; //ans[0]=predicted still,when still,
+                        ArrayList<Integer> answer = new ArrayList<Integer>(); //ans[0]=predicted still,when still,
                         //ans[1]=predicted walk, when still,
-                        //ans[2]=total actual still,
-                        int[] temp = {0, 0, 0};
-                        int[] temp2 = {0, 0, 0};
+                        //ans[2]=total actual still, ans[3]=predicted still, when walk,
+                        //ans[4]=predicted walk, when walk,ans[5]=total actual walk
+                        int[] temp;
                         temp = checkMotionKNN("motionS-2.csv", "combinedSW.csv");
-                        temp2 = checkMotionKNN("motionW-2.csv", "combinedSW.csv");
-                        answer[0] = temp[0];
-                        answer[1] = temp[1];
-                        answer[2] = temp[2];
-                        answer[3] = temp2[0]; //predicted still, when walk
-                        answer[4] = temp2[1]; //predicted walk, when walk
-                        answer[5] = temp2[2]; //total actual walk
-                        textView.setText("Conf Matrix stored in internal storage\n");
-                        editText.setText("");
+                        for (int i : temp)
+                        {
+                            answer.add(i);
+                        }
+                        temp = checkMotionKNN("motionW-2.csv", "combinedSW.csv");
+                        for (int i : temp){
+                            answer.add(i);
+                        }
                         try {
-                            outputStream = openFileOutput("confMatMotion" + ".csv", Context.MODE_PRIVATE);
-                            outputStream.write(Arrays.toString(answer).getBytes());
+                            outputStream = openFileOutput("confMatMotionKNN" + ".csv", Context.MODE_PRIVATE);
+                            outputStream.write(Arrays.toString(answer.toArray()).getBytes());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -257,10 +256,36 @@ public class MainActivity extends Activity implements SensorEventListener {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        //checkCellKNN("locateCell2-2.csv", "combinedCells.csv");
-                        //checkCellKNN("locateCell6-2.csv", "combinedCells.csv");
-                        //checkCellKNN("locateCell9-2.csv", "combinedCells.csv");
-                        //checkCellKNN("locateCell15-2.csv", "combinedCells.csv");
+                        answer.clear();
+                        temp = checkCellKNN("locateCell2-2.csv", "combinedCells.csv");
+                        for (int i : temp){
+                            answer.add(i);
+                        }
+                        temp = checkCellKNN("locateCell6-2.csv", "combinedCells.csv");
+                        for (int i : temp){
+                            answer.add(i);
+                        }
+                        temp = checkCellKNN("locateCell9-2.csv", "combinedCells.csv");
+                        for (int i : temp){
+                            answer.add(i);
+                        }
+                        temp = checkCellKNN("locateCell15-2.csv", "combinedCells.csv");
+                        for (int i : temp){
+                            answer.add(i);
+                        }
+                        try {
+                            outputStream = openFileOutput("confMatLocateKNN" + ".csv", Context.MODE_PRIVATE);
+                            outputStream.write(Arrays.toString(answer.toArray()).getBytes());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            outputStream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        //textView.setText("Conf Matrix stored in internal storage\n");
+                        editText.setText("");
                     } else if (editText.getText().toString().contains("Bayes")) {
                         textView.setText("WIP");
                     } else {
@@ -313,9 +338,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                             List<ScanResult> scanResults = wifiManager.getScanResults();
                             // Write results to a label
                             for (ScanResult scanResult : scanResults) {
-                                outputStream.write((scanResult.BSSID + "," + cellNo[1]+",").getBytes());
+                                outputStream.write(("," + scanResult.BSSID + "," + cellNo[1]+"\n").getBytes());
                             }
-                            outputStream.write(";".getBytes()); //to show end of each sample
+                            outputStream.write(";\n".getBytes()); //to show end of each sample
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -458,12 +483,12 @@ public class MainActivity extends Activity implements SensorEventListener {
         int totalCount6 = 0;
         int totalCount9 = 0;
         int totalCount15 = 0;
-        ArrayList<Pair<String, Integer>> toSort =
-                new ArrayList<Pair<String, Integer>>();
+        ArrayList<Pair<Integer, Integer>> toSort =
+                new ArrayList<Pair<Integer, Integer>>();
         leftoverTest = sbTest.toString().split(",");
         leftoverTrain = sbTrain.toString().split(",");
-        int i=0;
-        int k =0;
+        int i=1; //when i is 0 in this case there is nothing, k too
+        int k =1;
         int numSamples = leftoverTest.length/2;
         int K = (int) Math.sqrt(numSamples);
         if (K % 2 == 0) {
@@ -476,58 +501,64 @@ public class MainActivity extends Activity implements SensorEventListener {
                     hamDist++;
                 }
                 if(leftoverTrain[k+1].contains(";")){
-                    toSort.add(new Pair<String, Integer>(leftoverTrain[k+1].split(";")[0],hamDist));
+                    toSort.add(new Pair<Integer, Integer>(Integer.parseInt(leftoverTrain[k+1].split(";")[0]),hamDist));
                     hamDist =0; //going to check new sample, ; was used to mark end of sample
                 }
                 k+=2;
-            } while (k < leftoverTrain.length);
-            if(leftoverTest[k+1].contains(";")) {
+            } while (k < leftoverTrain.length-1);
+            if(leftoverTest[i+1].contains(";")) {
                 //sort the list to lowest distance on top
-                Collections.sort(toSort, new Comparator<Pair<String, Integer>>() {
+                Collections.sort(toSort, new Comparator<Pair<Integer, Integer>>() {
                     @Override
-                    public int compare(final Pair<String, Integer> o1, final Pair<String, Integer> o2) {
+                    public int compare(final Pair<Integer, Integer> o1, final Pair<Integer, Integer> o2) {
                         return o1.second.compareTo(o2.second);
                     }
                 });
                 int count2=0,count6=0,count9=0,count15=0;
-                String temp;
+                Integer temp;
                 for (int j = 0; j < K; j++) {
                     temp = toSort.get(j).first;
-                    if (temp.equals("2")) {
+                    if (temp==2) {
                         count2++;
-                    } else if (temp.equals("6")){
+                    } else if (temp==6){
                         count6++;
-                    } else if (temp.equals("9")){
+                    } else if (temp==9){
                         count9++;
-                    } else if (temp.equals("15")) {
+                    } else if (temp==15) {
                         count15++;
                     }
                 }
-                ArrayList<Pair<String,Integer>> getCount = new ArrayList<Pair<String,Integer>>();
-                getCount.add(new Pair<String,Integer>("2",count2));
-                getCount.add(new Pair<String,Integer>("6",count6));
-                getCount.add(new Pair<String,Integer>("9",count9));
-                getCount.add(new Pair<String,Integer>("15",count15));
-                Collections.sort(getCount, new Comparator<Pair<String, Integer>>() {
+                ArrayList<Pair<Integer,Integer>> getCount = new ArrayList<Pair<Integer,Integer>>();
+                getCount.add(new Pair<Integer,Integer>(2,count2));
+                getCount.add(new Pair<Integer,Integer>(6,count6));
+                getCount.add(new Pair<Integer,Integer>(9,count9));
+                getCount.add(new Pair<Integer,Integer>(15,count15));
+                Collections.sort(getCount, new Comparator<Pair<Integer, Integer>>() {
                     @Override
-                    public int compare(final Pair<String, Integer> o1, final Pair<String, Integer> o2) {
-                        return o1.second.compareTo(o2.second);
+                    public int compare(final Pair<Integer, Integer> o1, final Pair<Integer, Integer> o2) {
+                        return o2.second.compareTo(o1.second);
                     }
                 });
                 temp = getCount.get(0).first;
-                if(temp.equals("2")){
+                if(temp==2){
                     totalCount2++;
-                } else if(temp.equals("6")){
+                } else if(temp==6){
                     totalCount6++;
-                } else if(temp.equals("9")){
+                } else if(temp==9){
                     totalCount9++;
-                } else if(temp.equals("15")){
+                } else if(temp==15){
                     totalCount15++;
                 }
             }
+            else{
+                totalCount2=-1;
+                totalCount6=-1;
+                totalCount9=-1;
+                totalCount15=-1;
+            }
             k=0;
             i+=2; //due to 2 variables per sample
-        } while(i<leftoverTest.length);
+        } while(i<leftoverTest.length-1);
         checked[0] = totalCount2;//predicted cell2
         checked[1] = totalCount6;//predicted cell6
         checked[2] = totalCount9; //predicted cell 9
