@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.Vector;
 import java.lang.Math;
 
+import static java.util.Arrays.asList;
+
 /**
  * Smart Phone Sensing Example 2. Working with sensors.
  */
@@ -237,12 +239,11 @@ public class MainActivity extends Activity implements SensorEventListener {
                         //ans[4]=predicted walk, when walk,ans[5]=total actual walk
                         int[] temp;
                         temp = checkMotionKNN("motionS-2.csv", "combinedSW.csv");
-                        for (int i : temp)
-                        {
+                        for (int i : temp) {
                             answer.add(i);
                         }
                         temp = checkMotionKNN("motionW-2.csv", "combinedSW.csv");
-                        for (int i : temp){
+                        for (int i : temp) {
                             answer.add(i);
                         }
                         try {
@@ -257,20 +258,20 @@ public class MainActivity extends Activity implements SensorEventListener {
                             e.printStackTrace();
                         }
                         answer.clear();
-                        temp = checkCellKNN("locateCell2-2.csv", "combinedCells.csv");
-                        for (int i : temp){
+                        temp = checkCellKNN("locateCell2-2.csv", "combinedCells.csv", "UcombinedCells.csv");
+                        for (int i : temp) {
                             answer.add(i);
                         }
-                        temp = checkCellKNN("locateCell6-2.csv", "combinedCells.csv");
-                        for (int i : temp){
+                        temp = checkCellKNN("locateCell6-2.csv", "combinedCells.csv", "UcombinedCells.csv");
+                        for (int i : temp) {
                             answer.add(i);
                         }
-                        temp = checkCellKNN("locateCell9-2.csv", "combinedCells.csv");
-                        for (int i : temp){
+                        temp = checkCellKNN("locateCell9-2.csv", "combinedCells.csv", "UcombinedCells.csv");
+                        for (int i : temp) {
                             answer.add(i);
                         }
-                        temp = checkCellKNN("locateCell15-2.csv", "combinedCells.csv");
-                        for (int i : temp){
+                        temp = checkCellKNN("locateCell15-2.csv", "combinedCells.csv", "UcombinedCells.csv");
+                        for (int i : temp) {
                             answer.add(i);
                         }
                         try {
@@ -338,7 +339,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             List<ScanResult> scanResults = wifiManager.getScanResults();
                             // Write results to a label
                             for (ScanResult scanResult : scanResults) {
-                                outputStream.write(("," + scanResult.BSSID + "," + cellNo[1]+"\n").getBytes());
+                                outputStream.write(("," + scanResult.BSSID + "," + cellNo[1] + "\n").getBytes());
                             }
                             outputStream.write(";\n".getBytes()); //to show end of each sample
                         }
@@ -416,7 +417,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         int totalCountStill = 0;
         int totalCountWalk = 0;
         //K is the Kth nearest neighbours
-        int numSamples = leftoverTest.length/4;
+        int numSamples = leftoverTest.length / 4;
         int K = (int) Math.sqrt(numSamples);
         if (K % 2 == 0) {
             K++; //ensure K is always odd
@@ -470,15 +471,18 @@ public class MainActivity extends Activity implements SensorEventListener {
         return checked;
     }
 
-    private int[] checkCellKNN(String fileTest, String fileTrain) {
-        int[] checked = {0,0,0,0}; //4x4 confusion matrix
+    private int[] checkCellKNN(String fileTest, String fileTrain, String fileUnique) {
+        int[] checked = {0, 0, 0, 0}; //4x4 confusion matrix
         //do hamming distance with KNN
         StringBuilder sbTest = new StringBuilder();
         sbTest = combiner(fileTest, sbTest);
         StringBuilder sbTrain = new StringBuilder();
         sbTrain = combiner(fileTrain, sbTrain);
+        StringBuilder sbUnique = new StringBuilder();
+        sbUnique = combiner(fileUnique, sbUnique);
         String[] leftoverTest;
         String[] leftoverTrain;
+        String[] leftoverUnique;
         int totalCount2 = 0;
         int totalCount6 = 0;
         int totalCount9 = 0;
@@ -487,72 +491,109 @@ public class MainActivity extends Activity implements SensorEventListener {
                 new ArrayList<Pair<Integer, Integer>>();
         leftoverTest = sbTest.toString().split(",");
         leftoverTrain = sbTrain.toString().split(",");
-        int i=1; //when i is 0 in this case there is nothing, k too
-        int k =1;
-        int numSamples = leftoverTest.length/2;
+        leftoverUnique = sbUnique.toString().split(",");
+        //get a unique ssid characteristics
+        int uniqueL = leftoverUnique.length;
+        int size = uniqueL+1;
+        int[] allBSSID = new int[size];
+        ArrayList<String> tempSList = new ArrayList<String>(Arrays.asList(leftoverUnique));
+        ArrayList<int[]> hammedTrain = new ArrayList<int[]>();
+        for (String training : leftoverTrain) {
+            if (tempSList.contains(training) && training.length() > 16) {
+                allBSSID[tempSList.indexOf(training)] = 1;
+            }
+            if (training.contains(";")) { //new sample
+                allBSSID[uniqueL] = Integer.parseInt(training.split(";")[0]); //take only cell value
+                hammedTrain.add(allBSSID);
+                //Arrays.fill(allBSSID, 0);
+            }
+        }
+        //textView.setText(Integer.toString(hammedTrain.get(0)[6]));
+        ArrayList<int[]> hammedTest = new ArrayList<int[]>();
+        Arrays.fill(allBSSID, 0);
+        for (String testing : leftoverTest) {
+            if (tempSList.contains(testing) && testing.length() > 16) {
+                allBSSID[tempSList.indexOf(testing)] = 1;
+            }
+            if(testing.contains("-2")){
+                allBSSID[uniqueL] = Integer.parseInt(testing.split("-2")[0]); //take only cell value
+            }
+            if (testing.contains(";")) { //new sample
+                hammedTest.add(allBSSID);
+                //Arrays.fill(allBSSID, 0);
+            }
+        }
+        //textView.setText(Integer.toString(hammedTrain.get(0)[uniqueL]));
+        int i = 0;
+        int k = 0;
+        int numSamples = hammedTrain.size();
         int K = (int) Math.sqrt(numSamples);
         if (K % 2 == 0) {
             K++; //ensure K is always odd
         }
+        //textView.setText(Integer.toString(hammedTrain.get(0)[uniqueL]));
         int hamDist = 0;
-        do{
-            do{
-                if(!(leftoverTest[i].equals(leftoverTrain[k]))){
-                    hamDist++;
-                }
-                if(leftoverTrain[k+1].contains(";")){
-                    toSort.add(new Pair<Integer, Integer>(Integer.parseInt(leftoverTrain[k+1].split(";")[0]),hamDist));
-                    hamDist =0; //going to check new sample, ; was used to mark end of sample
-                }
-                k+=2;
-            } while (k < leftoverTrain.length-1);
-            if(leftoverTest[i+1].contains(";")) {
-                //sort the list to lowest distance on top
-                Collections.sort(toSort, new Comparator<Pair<Integer, Integer>>() {
-                    @Override
-                    public int compare(final Pair<Integer, Integer> o1, final Pair<Integer, Integer> o2) {
-                        return o1.second.compareTo(o2.second);
-                    }
-                });
-                int count2=0,count6=0,count9=0,count15=0;
-                Integer temp;
-                for (int j = 0; j < K; j++) {
-                    temp = toSort.get(j).first;
-                    if (temp==2) {
-                        count2++;
-                    } else if (temp==6){
-                        count6++;
-                    } else if (temp==9){
-                        count9++;
-                    } else if (temp==15) {
-                        count15++;
+        do {
+            do {
+                for(int a=0; a<uniqueL; a++){
+                    if (hammedTrain.get(k)[a]==hammedTest.get(i)[a]){
+                        hamDist++;
                     }
                 }
-                ArrayList<Pair<Integer,Integer>> getCount = new ArrayList<Pair<Integer,Integer>>();
-                getCount.add(new Pair<Integer,Integer>(2,count2));
-                getCount.add(new Pair<Integer,Integer>(6,count6));
-                getCount.add(new Pair<Integer,Integer>(9,count9));
-                getCount.add(new Pair<Integer,Integer>(15,count15));
-                Collections.sort(getCount, new Comparator<Pair<Integer, Integer>>() {
-                    @Override
-                    public int compare(final Pair<Integer, Integer> o1, final Pair<Integer, Integer> o2) {
-                        return o2.second.compareTo(o1.second);
-                    }
-                });
-                temp = getCount.get(0).first;
-                if(temp==2){
-                    totalCount2++;
-                } else if(temp==6){
-                    totalCount6++;
-                } else if(temp==9){
-                    totalCount9++;
-                } else if(temp==15){
-                    totalCount15++;
+                toSort.add(new Pair<Integer, Integer>(hammedTrain.get(k)[uniqueL], hamDist));
+                hamDist = 0; //going to check new sample, ; was used to mark end of sample
+                k += 1;
+            } while (k < hammedTrain.size());
+            //sort the list to lowest distance on top
+            Collections.sort(toSort, new Comparator<Pair<Integer, Integer>>() {
+                @Override
+                public int compare(final Pair<Integer, Integer> o1, final Pair<Integer, Integer> o2) {
+                    return o1.second.compareTo(o2.second);
+                }
+            });
+            int count2 = 0, count6 = 0, count9 = 0, count15 = 0;
+            int temp;
+            for (int j = 0; j < K; j++) {
+                temp = toSort.get(j).first;
+                if (temp == 2) {
+                    count2++;
+                } else if (temp == 6) {
+                    count6++;
+                } else if (temp == 9) {
+                    count9++;
+                } else if (temp == 15) {
+                    count15++;
                 }
             }
-            k=0;
-            i+=2; //due to 2 variables per sample
-        } while(i<leftoverTest.length-1);
+            int highestCount=0;
+            int checker=0;
+            if (count2>highestCount){
+                highestCount = count2;
+                checker = 2;
+            } else if (count6 > highestCount) {
+                highestCount = count6;
+                checker = 6;
+            } else if (count9 > highestCount) {
+                highestCount = count9;
+                checker = 9;
+            } else if (count15 > highestCount) {
+                highestCount = count15;
+                checker = 15;
+            }
+
+            if (checker == 2) {
+                totalCount2++;
+            } else if (checker == 6) {
+                totalCount6++;
+            } else if (checker == 9) {
+                totalCount9++;
+            } else if (checker == 15) {
+                totalCount15++;
+            }
+
+            k = 0;
+            i += 1; //due to 2 variables per sample
+        } while (i < hammedTest.size());
         checked[0] = totalCount2;//predicted cell2
         checked[1] = totalCount6;//predicted cell6
         checked[2] = totalCount9; //predicted cell 9
@@ -599,6 +640,28 @@ public class MainActivity extends Activity implements SensorEventListener {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            String[] getUnique = sb.toString().split(",");
+            ArrayList<String> aps = new ArrayList<String>();
+            for (String check : getUnique) {
+                if (!aps.contains(check) && check.length() > 16) {
+                    if (aps.isEmpty()) {
+                        aps.add("," + check);
+                    } else {
+                        aps.add(check);
+                    }
+                }
+            }
+            try {
+                String string_aps = aps.toString();
+                string_aps = string_aps.substring(1, string_aps.length() - 1); //remove []
+                string_aps = string_aps.replaceAll(" ", "");
+                outputStream = openFileOutput("UcombinedCells" + ".csv", Context.MODE_PRIVATE);
+                outputStream.write(string_aps.getBytes());
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 
