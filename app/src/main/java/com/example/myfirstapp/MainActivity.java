@@ -505,7 +505,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (training.contains(";")) { //new sample
                 allBSSID[uniqueL] = Integer.parseInt(training.split(";")[0]); //take only cell value
                 hammedTrain.add(allBSSID);
-                //Arrays.fill(allBSSID, 0);
+                allBSSID = new int[size];
             }
         }
         //textView.setText(Integer.toString(hammedTrain.get(0)[6]));
@@ -520,10 +520,24 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
             if (testing.contains(";")) { //new sample
                 hammedTest.add(allBSSID);
-                //Arrays.fill(allBSSID, 0);
+                allBSSID = new int[size];
             }
         }
         //textView.setText(Integer.toString(hammedTrain.get(0)[uniqueL]));
+        try {
+            outputStream = openFileOutput("hammedTrain" + ".csv", Context.MODE_PRIVATE);
+            outputStream.write((Arrays.toString(hammedTrain.get(0))+"\n").getBytes());
+            outputStream.write((Arrays.toString(hammedTrain.get(1))+"\n").getBytes());
+            outputStream.write((Arrays.toString(hammedTrain.get(2))+"\n").getBytes());
+            outputStream.write((Arrays.toString(hammedTrain.get(30))+"\n").getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         int i = 0;
         int k = 0;
         int numSamples = hammedTrain.size();
@@ -548,7 +562,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             Collections.sort(toSort, new Comparator<Pair<Integer, Integer>>() {
                 @Override
                 public int compare(final Pair<Integer, Integer> o1, final Pair<Integer, Integer> o2) {
-                    return o1.second.compareTo(o2.second);
+                    return o2.second.compareTo(o1.second);
                 }
             });
             int count2 = 0, count6 = 0, count9 = 0, count15 = 0;
