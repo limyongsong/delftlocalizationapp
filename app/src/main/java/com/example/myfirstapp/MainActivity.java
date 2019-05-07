@@ -88,8 +88,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     String csvName = "";
 
-    ArrayList<String> aps = new ArrayList<String>();
-
     //used to get data every certain time interval
     Handler h = new Handler();
     int delay = 1000; //1 second=1000 milisecond
@@ -172,10 +170,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                     textView.setText(csvName + ".csv has been created.");
                     try {
                         //outputStream.write("Hello World test!\n".getBytes()); for debugging
-                        if (csvName.contains("locate")) {
-                            outputStream.write(aps.toString().getBytes());
-                            aps.clear();
-                        }
                         outputStream.close();
                         started = false;
                     } catch (IOException e) {
@@ -263,6 +257,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        //checkCellKNN("locateCell2-2.csv", "combinedCells.csv");
+                        //checkCellKNN("locateCell6-2.csv", "combinedCells.csv");
+                        //checkCellKNN("locateCell9-2.csv", "combinedCells.csv");
+                        //checkCellKNN("locateCell15-2.csv", "combinedCells.csv");
                     } else if (editText.getText().toString().contains("Bayes")) {
                         textView.setText("WIP");
                     } else {
@@ -315,11 +313,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                             List<ScanResult> scanResults = wifiManager.getScanResults();
                             // Write results to a label
                             for (ScanResult scanResult : scanResults) {
-                                //refine result abit
-                                if (!aps.contains("BSSID=" + scanResult.BSSID + ",Cell=" + cellNo[1] + ",\n")) {
-                                    aps.add("BSSID=" + scanResult.BSSID + ",Cell=" + cellNo[1] + ",\n");
-                                }
+                                outputStream.write((scanResult.BSSID + "," + cellNo[1]+",").getBytes());
                             }
+                            outputStream.write(";".getBytes()); //to show end of each sample
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -395,7 +391,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         int totalCountStill = 0;
         int totalCountWalk = 0;
         //K is the Kth nearest neighbours
-        int numSamples = toSort.size();
+        int numSamples = leftoverTest.length/4;
         int K = (int) Math.sqrt(numSamples);
         if (K % 2 == 0) {
             K++; //ensure K is always odd
@@ -406,16 +402,23 @@ public class MainActivity extends Activity implements SensorEventListener {
             z1 = Float.parseFloat(leftoverTest[i + 2]);
             do {
                 x2 = Float.parseFloat(leftoverTrain[k]);
-                x = Math.sqrt(Math.pow(x1 - x2, 2));
+                x = Math.pow(x1 - x2, 2);
                 y2 = Float.parseFloat(leftoverTrain[k + 1]);
-                y = Math.sqrt(Math.pow(y1 - y2, 2));
+                y = Math.pow(y1 - y2, 2);
                 z2 = Float.parseFloat(leftoverTrain[k + 2]);
-                z = Math.sqrt(Math.pow(z1 - z2, 2));
-                toSort.add(new Pair<String, Double>(leftoverTrain[k + 3], x + y + z));
+                z = Math.pow(z1 - z2, 2);
+                toSort.add(new Pair<String, Double>(leftoverTrain[k + 3], Math.sqrt(x + y + z)));
                 k = k + 4;
             } while (k < leftoverTrain.length);
             int countStill = 0;
             int countWalk = 0;
+            //sort the list to lowest distance on top
+            Collections.sort(toSort, new Comparator<Pair<String, Double>>() {
+                @Override
+                public int compare(final Pair<String, Double> o1, final Pair<String, Double> o2) {
+                    return o1.second.compareTo(o2.second);
+                }
+            });
             for (int j = 0; j < K; j++) {
                 if (toSort.get(j).first.equals("Still")) {
                     countStill++;
@@ -429,29 +432,106 @@ public class MainActivity extends Activity implements SensorEventListener {
                 totalCountStill++;
             }
             k = 0;
-            i = i + 4;
+            i = i + 4; // due to 4 variables per sample
         } while (i < leftoverTest.length);
-        //sort the list to lowest distance on top
-        Collections.sort(toSort, new Comparator<Pair<String, Double>>() {
-            @Override
-            public int compare(final Pair<String, Double> o1, final Pair<String, Double> o2) {
-                return o1.second.compareTo(o2.second);
-            }
-        });
-        textView.setText(toSort.toString()); //for debugging
+        //textView.setText(toSort.toString()); //for debugging
         //textView.setText(Integer.toString(leftoverTrain.length)); //for debugging
 
         checked[0] = totalCountStill;//predicted still
         checked[1] = totalCountWalk;//predicted walk
-        checked[2] = leftoverTest.length / 4; //actual still/walk
+        checked[2] = numSamples; //actual still/walk
 
 
         return checked;
     }
 
-    private int[][] checkCellKNN(String fileTest, String fileTrain) {
-        int[][] checked = {{}}; //4x4 confusion matrix
-        //read file and do the hamming dist
+    private int[] checkCellKNN(String fileTest, String fileTrain) {
+        int[] checked = {0,0,0,0}; //4x4 confusion matrix
+        //do hamming distance with KNN
+        StringBuilder sbTest = new StringBuilder();
+        sbTest = combiner(fileTest, sbTest);
+        StringBuilder sbTrain = new StringBuilder();
+        sbTrain = combiner(fileTrain, sbTrain);
+        String[] leftoverTest;
+        String[] leftoverTrain;
+        int totalCount2 = 0;
+        int totalCount6 = 0;
+        int totalCount9 = 0;
+        int totalCount15 = 0;
+        ArrayList<Pair<String, Integer>> toSort =
+                new ArrayList<Pair<String, Integer>>();
+        leftoverTest = sbTest.toString().split(",");
+        leftoverTrain = sbTrain.toString().split(",");
+        int i=0;
+        int k =0;
+        int numSamples = leftoverTest.length/2;
+        int K = (int) Math.sqrt(numSamples);
+        if (K % 2 == 0) {
+            K++; //ensure K is always odd
+        }
+        int hamDist = 0;
+        do{
+            do{
+                if(!(leftoverTest[i].equals(leftoverTrain[k]))){
+                    hamDist++;
+                }
+                if(leftoverTrain[k+1].contains(";")){
+                    toSort.add(new Pair<String, Integer>(leftoverTrain[k+1].split(";")[0],hamDist));
+                    hamDist =0; //going to check new sample, ; was used to mark end of sample
+                }
+                k+=2;
+            } while (k < leftoverTrain.length);
+            if(leftoverTest[k+1].contains(";")) {
+                //sort the list to lowest distance on top
+                Collections.sort(toSort, new Comparator<Pair<String, Integer>>() {
+                    @Override
+                    public int compare(final Pair<String, Integer> o1, final Pair<String, Integer> o2) {
+                        return o1.second.compareTo(o2.second);
+                    }
+                });
+                int count2=0,count6=0,count9=0,count15=0;
+                String temp;
+                for (int j = 0; j < K; j++) {
+                    temp = toSort.get(j).first;
+                    if (temp.equals("2")) {
+                        count2++;
+                    } else if (temp.equals("6")){
+                        count6++;
+                    } else if (temp.equals("9")){
+                        count9++;
+                    } else if (temp.equals("15")) {
+                        count15++;
+                    }
+                }
+                ArrayList<Pair<String,Integer>> getCount = new ArrayList<Pair<String,Integer>>();
+                getCount.add(new Pair<String,Integer>("2",count2));
+                getCount.add(new Pair<String,Integer>("6",count6));
+                getCount.add(new Pair<String,Integer>("9",count9));
+                getCount.add(new Pair<String,Integer>("15",count15));
+                Collections.sort(getCount, new Comparator<Pair<String, Integer>>() {
+                    @Override
+                    public int compare(final Pair<String, Integer> o1, final Pair<String, Integer> o2) {
+                        return o1.second.compareTo(o2.second);
+                    }
+                });
+                temp = getCount.get(0).first;
+                if(temp.equals("2")){
+                    totalCount2++;
+                } else if(temp.equals("6")){
+                    totalCount6++;
+                } else if(temp.equals("9")){
+                    totalCount9++;
+                } else if(temp.equals("15")){
+                    totalCount15++;
+                }
+            }
+            k=0;
+            i+=2; //due to 2 variables per sample
+        } while(i<leftoverTest.length);
+        checked[0] = totalCount2;//predicted cell2
+        checked[1] = totalCount6;//predicted cell6
+        checked[2] = totalCount9; //predicted cell 9
+        checked[3] = totalCount15; //predicted cell 15
         return checked;
     }
 
