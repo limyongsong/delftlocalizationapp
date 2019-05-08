@@ -285,7 +285,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        //textView.setText("Conf Matrix stored in internal storage\n");
+                        textView.setText("Conf Matrix stored in internal storage\n");
                         editText.setText("");
                     } else if (editText.getText().toString().contains("Bayes")) {
                         textView.setText("WIP");
@@ -524,7 +524,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
         }
         //textView.setText(Integer.toString(hammedTrain.get(0)[uniqueL]));
-        try {
+/*        try {
             outputStream = openFileOutput("hammedTrain" + ".csv", Context.MODE_PRIVATE);
             outputStream.write((Arrays.toString(hammedTrain.get(0))+"\n").getBytes());
             outputStream.write((Arrays.toString(hammedTrain.get(1))+"\n").getBytes());
@@ -537,7 +537,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             outputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
         int i = 0;
         int k = 0;
         int numSamples = hammedTrain.size();
