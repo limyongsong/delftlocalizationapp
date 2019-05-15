@@ -73,10 +73,15 @@ public class MainActivity extends Activity implements SensorEventListener {
     private float aZ = 0;
 
     private float aX_Range = 0, aY_Range = 0, aZ_Range = 0, aX_Max = 0, aY_Max = 0, aZ_Max = 0, aX_Min = 0, aY_Min = 0, aZ_Min = 0;
+    //probabilities of each cell
+    private double Pstart = 0.0625;
+    private double P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16;
     /**
      * The text view.
      */
-    private TextView textView;
+    private TextView textView, textView1, textView2, textView3, textView4, textView5, textView6,
+            textView7, textView8, textView9, textView10, textView11, textView12, textView13,
+            textView14, textView15, textView16, textViewMotion, textViewBestCell;
     /**
      * The edit text box.
      */
@@ -86,13 +91,13 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     FileOutputStream outputStream;
 
-    boolean started = false, refreshed = true;
+    boolean started = false, refreshed = true, Bayes = false;
 
     String csvName = "";
 
     //used to get data every certain time interval
     Handler h = new Handler();
-    int delay = 1000; //1 second=1000 milisecond
+    int delay = 1000; //1 second=1000 milisecond, 500=500milisecond
     Runnable runnable;
 
     @Override
@@ -102,6 +107,24 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         //titleAcc = (TextView) findViewById(R.id.titleAcc);
         textView = (TextView) findViewById(R.id.textView2);
+        textView1 = (TextView) findViewById(R.id.cell1);
+        textView2 = (TextView) findViewById(R.id.cell2);
+        textView3 = (TextView) findViewById(R.id.cell3);
+        textView4 = (TextView) findViewById(R.id.cell4);
+        textView5 = (TextView) findViewById(R.id.cell5);
+        textView6 = (TextView) findViewById(R.id.cell6);
+        textView7 = (TextView) findViewById(R.id.cell7);
+        textView8 = (TextView) findViewById(R.id.cell8);
+        textView9 = (TextView) findViewById(R.id.cell9);
+        textView10 = (TextView) findViewById(R.id.cell10);
+        textView11 = (TextView) findViewById(R.id.cell11);
+        textView12 = (TextView) findViewById(R.id.cell12);
+        textView13 = (TextView) findViewById(R.id.cell13);
+        textView14 = (TextView) findViewById(R.id.cell14);
+        textView15 = (TextView) findViewById(R.id.cell15);
+        textView16 = (TextView) findViewById(R.id.cell16);
+        textViewMotion = (TextView) findViewById(R.id.currentMotion);
+        textViewBestCell = (TextView) findViewById(R.id.bestCell);
         editText = (EditText) findViewById(R.id.editText2);
 
 
@@ -194,29 +217,40 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonInitial.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                FileInputStream fileInputStream = null;
-                try {
-                    fileInputStream = getApplicationContext().openFileInput("motionS.csv");
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                StringBuilder sb = new StringBuilder();
-                String line;
-                try {
-                    while ((line = bufferedReader.readLine()) != null) {
-                        sb.append(line);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                try {
-                    fileInputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                textView.setText("Used for Bug testing now\n" + sb);
+                textView1.setText(Double.toString(Pstart));
+                textView2.setText(Double.toString(Pstart));
+                textView3.setText(Double.toString(Pstart));
+                textView4.setText(Double.toString(Pstart));
+                textView5.setText(Double.toString(Pstart));
+                textView6.setText(Double.toString(Pstart));
+                textView7.setText(Double.toString(Pstart));
+                textView8.setText(Double.toString(Pstart));
+                textView9.setText(Double.toString(Pstart));
+                textView10.setText(Double.toString(Pstart));
+                textView11.setText(Double.toString(Pstart));
+                textView12.setText(Double.toString(Pstart));
+                textView13.setText(Double.toString(Pstart));
+                textView14.setText(Double.toString(Pstart));
+                textView15.setText(Double.toString(Pstart));
+                textView16.setText(Double.toString(Pstart));
+                P1 = Pstart;
+                P2 = Pstart;
+                P3 = Pstart;
+                P4 = Pstart;
+                P5 = Pstart;
+                P6 = Pstart;
+                P7 = Pstart;
+                P8 = Pstart;
+                P9 = Pstart;
+                P10 = Pstart;
+                P11 = Pstart;
+                P12 = Pstart;
+                P13 = Pstart;
+                P14 = Pstart;
+                P15 = Pstart;
+                P16 = Pstart;
+                Bayes = true;
+                textView.setText("Bayes mode selected");
             }
         });
         // Create a click listener for our LocateMe button, to see which cell we are at, can iterate
@@ -347,6 +381,83 @@ public class MainActivity extends Activity implements SensorEventListener {
                         e.printStackTrace();
                     }
                 }
+                if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 0) {
+                    refreshed = true;
+                    textViewMotion.setText("Still");
+                } else if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 1) {
+                    refreshed = true;
+                    textViewMotion.setText("Walk");
+                } else {
+                    refreshed = true;
+                    textViewMotion.setText("Still");
+                }
+                double highestP = 0.0;
+                if (Bayes) {
+                    if (P1 > highestP) {
+                        highestP = P1;
+                        textViewBestCell.setText("Cell1");
+                    }
+                    if (P2 > highestP) {
+                        highestP = P2;
+                        textViewBestCell.setText("Cell2");
+                    }
+                    if (P3 > highestP) {
+                        highestP = P3;
+                        textViewBestCell.setText("Cell3");
+                    }
+                    if (P4 > highestP) {
+                        highestP = P4;
+                        textViewBestCell.setText("Cell4");
+                    }
+                    if (P5 > highestP) {
+                        highestP = P5;
+                        textViewBestCell.setText("Cell5");
+                    }
+                    if (P6 > highestP) {
+                        highestP = P6;
+                        textViewBestCell.setText("Cell6");
+                    }
+                    if (P7 > highestP) {
+                        highestP = P7;
+                        textViewBestCell.setText("Cell7");
+                    }
+                    if (P8 > highestP) {
+                        highestP = P8;
+                        textViewBestCell.setText("Cell8");
+                    }
+                    if (P9 > highestP) {
+                        highestP = P9;
+                        textViewBestCell.setText("Cell9");
+                    }
+                    if (P10 > highestP) {
+                        highestP = P10;
+                        textViewBestCell.setText("Cell10");
+                    }
+                    if (P11 > highestP) {
+                        highestP = P11;
+                        textViewBestCell.setText("Cell11");
+                    }
+                    if (P12 > highestP) {
+                        highestP = P12;
+                        textViewBestCell.setText("Cell12");
+                    }
+                    if (P13 > highestP) {
+                        highestP = P13;
+                        textViewBestCell.setText("Cell13");
+                    }
+                    if (P14 > highestP) {
+                        highestP = P14;
+                        textViewBestCell.setText("Cell14");
+                    }
+                    if (P15 > highestP) {
+                        highestP = P15;
+                        textViewBestCell.setText("Cell15");
+                    }
+                    if (P16 > highestP) {
+                        highestP = P16;
+                        textViewBestCell.setText("Cell16");
+                    }
+                }
                 h.postDelayed(runnable, delay);
             }
         }, delay);
@@ -471,6 +582,62 @@ public class MainActivity extends Activity implements SensorEventListener {
         return checked;
     }
 
+    private int checkMotionKNN(float xT, float yT, float zT, String fileTrain) {
+        int checked = 0;
+        //do euclidean dist: compare difference x,y,z then add tgt, knn sqrt sample size
+        StringBuilder sbTrain = new StringBuilder();
+        sbTrain = combiner(fileTrain, sbTrain);
+        String[] leftoverTest;
+        String[] leftoverTrain;
+        double x2, x, y2, y, z2, z;
+        ArrayList<Pair<String, Double>> toSort =
+                new ArrayList<Pair<String, Double>>();
+        leftoverTrain = sbTrain.toString().split(",");
+        int i = 0;
+        int k = 0;
+        //K is the Kth nearest neighbours
+        int numSamples = leftoverTrain.length / 4;
+        int K = (int) Math.sqrt(numSamples);
+        if (K % 2 == 0) {
+            K++; //ensure K is always odd
+        }
+
+        do {
+            x2 = Float.parseFloat(leftoverTrain[k]);
+            x = Math.pow(xT - x2, 2);
+            y2 = Float.parseFloat(leftoverTrain[k + 1]);
+            y = Math.pow(yT - y2, 2);
+            z2 = Float.parseFloat(leftoverTrain[k + 2]);
+            z = Math.pow(zT - z2, 2);
+            toSort.add(new Pair<String, Double>(leftoverTrain[k + 3], Math.sqrt(x + y + z)));
+            k = k + 4;
+        } while (k < leftoverTrain.length);
+        int countStill = 0;
+        int countWalk = 0;
+        //sort the list to lowest distance on top
+        Collections.sort(toSort, new Comparator<Pair<String, Double>>() {
+            @Override
+            public int compare(final Pair<String, Double> o1, final Pair<String, Double> o2) {
+                return o1.second.compareTo(o2.second);
+            }
+        });
+        for (int j = 0; j < K; j++) {
+            if (toSort.get(j).first.equals("Still")) {
+                countStill++;
+            } else {
+                countWalk++;
+            }
+        }
+        if (countWalk > countStill) {
+            checked = 1;
+        } else {
+            checked = 0;
+        }
+
+
+        return checked;
+    }
+
     private int[] checkCellKNN(String fileTest, String fileTrain, String fileUnique) {
         int[] checked = {0, 0, 0, 0}; //4x4 confusion matrix
         //do hamming distance with KNN
@@ -494,7 +661,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         leftoverUnique = sbUnique.toString().split(",");
         //get a unique ssid characteristics
         int uniqueL = leftoverUnique.length;
-        int size = uniqueL+1;
+        int size = uniqueL + 1;
         int[] allBSSID = new int[size];
         ArrayList<String> tempSList = new ArrayList<String>(Arrays.asList(leftoverUnique));
         ArrayList<int[]> hammedTrain = new ArrayList<int[]>();
@@ -515,7 +682,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (tempSList.contains(testing) && testing.length() > 16) {
                 allBSSID[tempSList.indexOf(testing)] = 1;
             }
-            if(testing.contains("-2")){
+            if (testing.contains("-2")) {
                 allBSSID[uniqueL] = Integer.parseInt(testing.split("-2")[0]); //take only cell value
             }
             if (testing.contains(";")) { //new sample
@@ -549,8 +716,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         int hamDist = 0;
         do {
             do {
-                for(int a=0; a<uniqueL; a++){
-                    if (hammedTrain.get(k)[a]==hammedTest.get(i)[a]){
+                for (int a = 0; a < uniqueL; a++) {
+                    if (hammedTrain.get(k)[a] == hammedTest.get(i)[a]) {
                         hamDist++;
                     }
                 }
@@ -579,9 +746,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                     count15++;
                 }
             }
-            int highestCount=0;
-            int checker=0;
-            if (count2>highestCount){
+            int highestCount = 0;
+            int checker = 0;
+            if (count2 > highestCount) {
                 highestCount = count2;
                 checker = 2;
             } else if (count6 > highestCount) {

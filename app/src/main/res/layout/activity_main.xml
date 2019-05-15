@@ -37,7 +37,6 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="10dp"
-                android:text="0.0"
                 android:textSize="15dp" />
 
         </LinearLayout>
@@ -64,7 +63,6 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="10dp"
-                android:text="Still"
                 android:textSize="15dp" />
 
         </LinearLayout>
