@@ -26,6 +26,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,7 +76,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private float aX_Range = 0, aY_Range = 0, aZ_Range = 0, aX_Max = 0, aY_Max = 0, aZ_Max = 0, aX_Min = 0, aY_Min = 0, aZ_Min = 0;
     //probabilities of each cell
     private double Pstart = 0.0625;
-    private double P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16;
+    private double[] cellProb = new double[16];
     /**
      * The text view.
      */
@@ -91,9 +92,13 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     FileOutputStream outputStream;
 
-    boolean started = false, refreshed = true, Bayes = false;
+    boolean started = false, refreshed = true;
+
+    Map<String, String[]> bayesLookup = new HashMap<String, String[]>();
 
     String csvName = "";
+
+    DecimalFormat numberFormat = new DecimalFormat("#.000");
 
     //used to get data every certain time interval
     Handler h = new Handler();
@@ -168,7 +173,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                     //File creation to store data (uncomment when algorithm done)
                     if (editText.getText().toString().contains("locate") ||
                             editText.getText().toString().contains("motionW") ||
-                            editText.getText().toString().contains("motionS")) {
+                            editText.getText().toString().contains("motionS") ||
+                            editText.getText().toString().contains("bayes")) {
                         csvName = editText.getText().toString();
                         textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
                         started = true;
@@ -179,7 +185,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                             e.printStackTrace();
                         }
                     } else {
-                        textView.setText("Please enter a suitable string containing 'locateCell#' or 'motionW/S'");
+                        textView.setText("Please enter a suitable string containing 'locateCell#' " +
+                                "or 'motionW/S' or 'bayesCell#'");
                     }
                 } else {
                     textView.setText(csvName + ".csv is running");
@@ -217,39 +224,33 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonInitial.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                textView1.setText(Double.toString(Pstart));
-                textView2.setText(Double.toString(Pstart));
-                textView3.setText(Double.toString(Pstart));
-                textView4.setText(Double.toString(Pstart));
-                textView5.setText(Double.toString(Pstart));
-                textView6.setText(Double.toString(Pstart));
-                textView7.setText(Double.toString(Pstart));
-                textView8.setText(Double.toString(Pstart));
-                textView9.setText(Double.toString(Pstart));
-                textView10.setText(Double.toString(Pstart));
-                textView11.setText(Double.toString(Pstart));
-                textView12.setText(Double.toString(Pstart));
-                textView13.setText(Double.toString(Pstart));
-                textView14.setText(Double.toString(Pstart));
-                textView15.setText(Double.toString(Pstart));
-                textView16.setText(Double.toString(Pstart));
-                P1 = Pstart;
-                P2 = Pstart;
-                P3 = Pstart;
-                P4 = Pstart;
-                P5 = Pstart;
-                P6 = Pstart;
-                P7 = Pstart;
-                P8 = Pstart;
-                P9 = Pstart;
-                P10 = Pstart;
-                P11 = Pstart;
-                P12 = Pstart;
-                P13 = Pstart;
-                P14 = Pstart;
-                P15 = Pstart;
-                P16 = Pstart;
-                Bayes = true;
+                textView1.setText(numberFormat.format(Pstart));
+                textView2.setText(numberFormat.format(Pstart));
+                textView3.setText(numberFormat.format(Pstart));
+                textView4.setText(numberFormat.format(Pstart));
+                textView5.setText(numberFormat.format(Pstart));
+                textView6.setText(numberFormat.format(Pstart));
+                textView7.setText(numberFormat.format(Pstart));
+                textView8.setText(numberFormat.format(Pstart));
+                textView9.setText(numberFormat.format(Pstart));
+                textView10.setText(numberFormat.format(Pstart));
+                textView11.setText(numberFormat.format(Pstart));
+                textView12.setText(numberFormat.format(Pstart));
+                textView13.setText(numberFormat.format(Pstart));
+                textView14.setText(numberFormat.format(Pstart));
+                textView15.setText(numberFormat.format(Pstart));
+                textView16.setText(numberFormat.format(Pstart));
+                for (int i = 0; i < 16; i++) {
+                    cellProb[i] = Pstart;
+                }
+                StringBuilder trainingData = new StringBuilder();
+                trainingData = combiner("ufCombinedBayes.csv", trainingData);
+                String[] trainingBssidString;
+                trainingBssidString = trainingData.toString().split("@");
+                for (int i = 1; i < trainingBssidString.length; i=i+2) {
+                    bayesLookup.put(trainingBssidString[i], trainingBssidString[i+1].split(","));
+                } //the values are in string, so change to double when need to calculate probability
+                editText.setText("");
                 textView.setText("Bayes mode selected");
             }
         });
@@ -258,7 +259,72 @@ public class MainActivity extends Activity implements SensorEventListener {
             @Override
             public void onClick(View v) {
                 //locate user
-                textView.setText("WIP\n");
+                if (editText.getText().toString().contains("Bayes")) {
+                    // Start a wifi scan.
+                    wifiManager.startScan();
+                    // Store results in a list.
+                    List<ScanResult> scanResults = wifiManager.getScanResults();
+                    ArrayList<Pair<String, Integer>> currentScan =
+                            new ArrayList<Pair<String, Integer>>();
+                    // Write results to a label
+                    for (ScanResult scanResult : scanResults) {
+                        currentScan.add(new Pair<String, Integer>(scanResult.BSSID.substring(0,14), scanResult.level));
+                    }
+                    //sort the list to highest rssi on top
+                    Collections.sort(currentScan, new Comparator<Pair<String, Integer>>() {
+                        @Override
+                        public int compare(final Pair<String, Integer> o1, final Pair<String, Integer> o2) {
+                            return o2.second.compareTo(o1.second);
+                        }
+                    });
+                    double probWifi = 0.0; //denominator of bayes formula
+                    double currentRssiProb = 0.0;
+                    double[] numerator = new double[16];
+                    for (Pair<String, Integer> currentBSSID : currentScan) {
+                        probWifi = 0.0;
+                        if (bayesLookup.containsKey(currentBSSID.first) && (currentBSSID.second * -1) < 100) {//only compared ssids in training data
+                            for (int i = 0; i < cellProb.length; i++) {
+                                currentRssiProb = Double.parseDouble(
+                                        bayesLookup.get(currentBSSID.first)[(currentBSSID.second * -1) + i * 100]);
+                                probWifi += currentRssiProb*cellProb[i];
+                                numerator[i] = currentRssiProb * cellProb[i];
+                            }
+                            for (int i = 0; i < cellProb.length; i++) {
+                                cellProb[i] = numerator[i] / probWifi;
+                            }
+                        }
+                    }
+                    textView1.setText(numberFormat.format(cellProb[0]));
+                    textView2.setText(numberFormat.format(cellProb[1]));
+                    textView3.setText(numberFormat.format(cellProb[2]));
+                    textView4.setText(numberFormat.format(cellProb[3]));
+                    textView5.setText(numberFormat.format(cellProb[4]));
+                    textView6.setText(numberFormat.format(cellProb[5]));
+                    textView7.setText(numberFormat.format(cellProb[6]));
+                    textView8.setText(numberFormat.format(cellProb[7]));
+                    textView9.setText(numberFormat.format(cellProb[8]));
+                    textView10.setText(numberFormat.format(cellProb[9]));
+                    textView11.setText(numberFormat.format(cellProb[10]));
+                    textView12.setText(numberFormat.format(cellProb[11]));
+                    textView13.setText(numberFormat.format(cellProb[12]));
+                    textView14.setText(numberFormat.format(cellProb[13]));
+                    textView15.setText(numberFormat.format(cellProb[14]));
+                    textView16.setText(numberFormat.format(cellProb[15]));
+                    double highestP = 0.0;
+                    for (int i = 0; i < 16; i++) {
+                        if (cellProb[i] > highestP) {
+                            highestP = cellProb[i];
+                            textViewBestCell.setText("Cell" + (i + 1));
+                        }
+                    }
+
+                    textView.setText("Iteration finished\n");
+                } else if (editText.getText().toString().contains("PF")) {
+                    editText.setText("");
+                    textView.setText("WIP\n");
+                } else {
+                    textView.setText("Please enter string with 'Bayes' or 'PF', which you want to train\n");
+                }
             }
         });
         // Create a click listener for our Test button, to get confusion matrix.
@@ -322,6 +388,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                         textView.setText("Conf Matrix stored in internal storage\n");
                         editText.setText("");
                     } else if (editText.getText().toString().contains("Bayes")) {
+                        checkCellBayes("bayesCell2-2.csv", "ufCombinedBayes.csv");
+                        editText.setText("");
                         textView.setText("WIP");
                     } else {
                         textView.setText("Please enter string with 'KNN' or 'Bayes', which you want to test\n");
@@ -340,7 +408,13 @@ public class MainActivity extends Activity implements SensorEventListener {
                     textView.setText("Trained KNN-SW&Cell2,6,9,15");
                     editText.setText("");
                 } else if (editText.getText().toString().contains("Bayes")) {
-                    textView.setText("WIP");
+                    prepareLocateDataBayes("bayesCell1.csv", "bayesCell2.csv", "bayesCell3.csv",
+                            "bayesCell4.csv", "bayesCell5.csv", "bayesCell6.csv", "bayesCell7.csv",
+                            "bayesCell8.csv", "bayesCell9.csv", "bayesCell10.csv", "bayesCell11.csv",
+                            "bayesCell12.csv", "bayesCell13.csv", "bayesCell14.csv", "bayesCell15.csv",
+                            "bayesCell16.csv");
+                    textView.setText("Trained bayes on all 16 cells");
+                    editText.setText("");
                 } else {
                     textView.setText("Please enter string with 'KNN' or 'Bayes', which you want to train\n");
                 }
@@ -376,6 +450,18 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 outputStream.write(("," + scanResult.BSSID + "," + cellNo[1] + "\n").getBytes());
                             }
                             outputStream.write(";\n".getBytes()); //to show end of each sample
+                        } else if (csvName.contains("bayes")) {
+                            String[] cellNo = csvName.split("Cell"); //cellNo[1] is cell no
+                            // Start a wifi scan.
+                            wifiManager.startScan();
+                            // Store results in a list.
+                            List<ScanResult> scanResults = wifiManager.getScanResults();
+                            // Write results to a label
+                            for (ScanResult scanResult : scanResults) {
+                                outputStream.write(("," + scanResult.BSSID + ","
+                                        + scanResult.level + "," + cellNo[1] + "\n").getBytes());
+                            }
+                            outputStream.write(";\n".getBytes()); //to show end of each sample
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -390,73 +476,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } else {
                     refreshed = true;
                     textViewMotion.setText("Still");
-                }
-                double highestP = 0.0;
-                if (Bayes) {
-                    if (P1 > highestP) {
-                        highestP = P1;
-                        textViewBestCell.setText("Cell1");
-                    }
-                    if (P2 > highestP) {
-                        highestP = P2;
-                        textViewBestCell.setText("Cell2");
-                    }
-                    if (P3 > highestP) {
-                        highestP = P3;
-                        textViewBestCell.setText("Cell3");
-                    }
-                    if (P4 > highestP) {
-                        highestP = P4;
-                        textViewBestCell.setText("Cell4");
-                    }
-                    if (P5 > highestP) {
-                        highestP = P5;
-                        textViewBestCell.setText("Cell5");
-                    }
-                    if (P6 > highestP) {
-                        highestP = P6;
-                        textViewBestCell.setText("Cell6");
-                    }
-                    if (P7 > highestP) {
-                        highestP = P7;
-                        textViewBestCell.setText("Cell7");
-                    }
-                    if (P8 > highestP) {
-                        highestP = P8;
-                        textViewBestCell.setText("Cell8");
-                    }
-                    if (P9 > highestP) {
-                        highestP = P9;
-                        textViewBestCell.setText("Cell9");
-                    }
-                    if (P10 > highestP) {
-                        highestP = P10;
-                        textViewBestCell.setText("Cell10");
-                    }
-                    if (P11 > highestP) {
-                        highestP = P11;
-                        textViewBestCell.setText("Cell11");
-                    }
-                    if (P12 > highestP) {
-                        highestP = P12;
-                        textViewBestCell.setText("Cell12");
-                    }
-                    if (P13 > highestP) {
-                        highestP = P13;
-                        textViewBestCell.setText("Cell13");
-                    }
-                    if (P14 > highestP) {
-                        highestP = P14;
-                        textViewBestCell.setText("Cell14");
-                    }
-                    if (P15 > highestP) {
-                        highestP = P15;
-                        textViewBestCell.setText("Cell15");
-                    }
-                    if (P16 > highestP) {
-                        highestP = P16;
-                        textViewBestCell.setText("Cell16");
-                    }
                 }
                 h.postDelayed(runnable, delay);
             }
@@ -725,7 +744,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 hamDist = 0; //going to check new sample, ; was used to mark end of sample
                 k += 1;
             } while (k < hammedTrain.size());
-            //sort the list to lowest distance on top
+            //sort the list to highest distance on top
             Collections.sort(toSort, new Comparator<Pair<Integer, Integer>>() {
                 @Override
                 public int compare(final Pair<Integer, Integer> o1, final Pair<Integer, Integer> o2) {
@@ -751,13 +770,16 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (count2 > highestCount) {
                 highestCount = count2;
                 checker = 2;
-            } else if (count6 > highestCount) {
+            }
+            if (count6 > highestCount) {
                 highestCount = count6;
                 checker = 6;
-            } else if (count9 > highestCount) {
+            }
+            if (count9 > highestCount) {
                 highestCount = count9;
                 checker = 9;
-            } else if (count15 > highestCount) {
+            }
+            if (count15 > highestCount) {
                 highestCount = count15;
                 checker = 15;
             }
@@ -781,6 +803,77 @@ public class MainActivity extends Activity implements SensorEventListener {
         checked[3] = totalCount15; //predicted cell 15
         return checked;
     }
+    //only checks 1 iteration
+    private int[] checkCellBayes(String fileTest, String fileTrain) {
+        int[] checked = new int[16]; //each cell corresponds to total count of cell1, cell2, etc
+        //do hamming distance with KNN
+        StringBuilder sbTest = new StringBuilder();
+        sbTest = combiner(fileTest, sbTest);
+        String[] leftoverTest;
+        leftoverTest = sbTest.toString().split(";"); //split to each sample/iteration
+        Map<String, String[]> bayesLookupTest = new HashMap<String, String[]>();
+
+        StringBuilder trainingData = new StringBuilder();
+        trainingData = combiner(fileTrain, trainingData);
+        String[] trainingBssidString;
+        trainingBssidString = trainingData.toString().split("@");
+        for (int i = 1; i < trainingBssidString.length; i=i+2) {
+            bayesLookupTest.put(trainingBssidString[i], trainingBssidString[i+1].split(","));
+        } //the values are in string, so change to double when need to calculate probability
+
+        String[] leftoverTestInner;
+        for(int j=0; j<leftoverTest.length; j++) { //go thorough each sample, 1 iteration
+            double[] cellProbTest = new double[16];
+            for (int i = 0; i < 16; i++) {
+                cellProbTest[i] = 1.0/16.0;
+            }
+            leftoverTestInner = leftoverTest[j].split(",");
+            double probWifi = 0.0; //denominator of bayes formula
+            double currentRssiProb = 0.0;
+            double[] numerator = new double[16];
+            ArrayList<Pair<String, Integer>> currentScan =
+                    new ArrayList<Pair<String, Integer>>();
+            for (int i=1; i<leftoverTestInner.length; i=i+3){
+                currentScan.add(new Pair<String, Integer>(leftoverTestInner[i].substring(0,14),
+                        Integer.parseInt(leftoverTestInner[i+1])));
+            }
+            for (Pair<String, Integer> currentBSSID : currentScan) {
+                probWifi = 0.0;
+                if (bayesLookupTest.containsKey(currentBSSID.first) && (currentBSSID.second * -1) < 100) {//only compared ssids in training data
+                    for (int i = 0; i < cellProbTest.length; i++) {
+                        currentRssiProb = Double.parseDouble(
+                                bayesLookupTest.get(currentBSSID.first)[(currentBSSID.second * -1) + i * 100]);
+                        probWifi += currentRssiProb*cellProbTest[i];
+                        numerator[i] = currentRssiProb * cellProbTest[i];
+                    }
+                    for (int i = 0; i < cellProbTest.length; i++) {
+                        cellProbTest[i] = numerator[i] / probWifi;
+                    }
+                }
+            }
+            double highestP = 0.0;
+            int flag = 0;
+            for (int i = 0; i < 16; i++) {
+                if (cellProbTest[i] > highestP) {
+                    flag++;
+                    highestP = cellProbTest[i];
+                }
+            }
+            checked[flag]++;
+        }
+        try {
+            outputStream = openFileOutput("checked_" + fileTest, Context.MODE_PRIVATE);
+            outputStream.write((Arrays.toString(checked)+"\n").getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return checked;
+    }
 
     //combines still and walking training data
     private void prepareMotionDataKNN(String file1, String file2) {
@@ -802,7 +895,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
-    //combines all the cell training info
+    //combines all the cell training info, and get a unique cell list (further processing done in checkCellKNN)
     private void prepareLocateDataKNN(String file1, String file2, String file3, String file4) {
         if (!started) {
             StringBuilder sb = new StringBuilder();
@@ -846,6 +939,93 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    //combines all the bayesCell data to form a pair<bssid,pair<cell,array of rssi>>
+    private void prepareLocateDataBayes(String file1, String file2, String file3, String file4,
+                                        String file5, String file6, String file7, String file8,
+                                        String file9, String file10, String file11, String file12,
+                                        String file13, String file14, String file15, String file16) {
+        if (!started) {
+            StringBuilder sb = new StringBuilder();
+            sb = combiner(file1, sb);
+            sb = combiner(file2, sb);
+            sb = combiner(file3, sb);
+            sb = combiner(file4, sb);
+            sb = combiner(file5, sb);
+            sb = combiner(file6, sb);
+            sb = combiner(file7, sb);
+            sb = combiner(file8, sb);
+            sb = combiner(file9, sb);
+            sb = combiner(file10, sb);
+            sb = combiner(file11, sb);
+            sb = combiner(file12, sb);
+            sb = combiner(file13, sb);
+            sb = combiner(file14, sb);
+            sb = combiner(file15, sb);
+            sb = combiner(file16, sb);
+            int[] rssiValue = new int[1600];
+            String currentBssid = "";
+            int currentRssi = 100;
+            String[] combinedBayes = sb.toString().split(",");
+            ArrayList<accessPoint> aps = new ArrayList<accessPoint>();
+            for (int i = 1; i < combinedBayes.length; i++) {
+                if (combinedBayes[i].length() > 16) {
+                    currentBssid = combinedBayes[i].substring(0, 14);
+                    if (!aps.contains(new accessPoint(currentBssid))) {
+                        aps.add(new accessPoint(currentBssid)); //everytime new bssid, add it to the back but only first 14char so wont double count same ssid
+                    }
+                } else {
+                    if (combinedBayes[i].contains("-")) {
+                        currentRssi = Integer.parseInt(combinedBayes[i].replace("-", "")) - 1;
+                    } else if (currentRssi < 100 && currentRssi > -1) { //at the end of each data
+                        if (combinedBayes[i].contains(";")) {
+                            rssiValue = aps.get(aps.indexOf(new accessPoint(currentBssid))).getRssiValue().clone();
+                            rssiValue[(Integer.parseInt(combinedBayes[i].replace(";", "")) - 1) * 100 + currentRssi]++;
+                            aps.get(aps.indexOf(new accessPoint(currentBssid))).setRssiValue(rssiValue);
+                        } else {
+                            rssiValue = aps.get(aps.indexOf(new accessPoint(currentBssid))).getRssiValue().clone();
+                            rssiValue[(Integer.parseInt(combinedBayes[i]) - 1) * 100 + currentRssi]++; //cell number-1 *100 is where the rssi count is stored
+                            aps.get(aps.indexOf(new accessPoint(currentBssid))).setRssiValue(rssiValue);
+                        }
+                    }
+                }
+            }
+            double[] rssiProb = new double[1600];
+            int totalSamples = 0;
+            int flag = 0; //will be from 0 to 32, used to reset j
+            for (int i = 0; i < aps.size(); i++) {
+                flag = 0;
+                for (int j = 0; j < 1600; j++) {
+                    if ((j % 100 == 0) && (flag % 2 == 0)) {
+                        totalSamples = 0;
+                    }
+                    if (flag % 2 == 0) {
+                        totalSamples += aps.get(i).getRssiValue()[j];
+                    } else if (flag % 2 == 1) {
+                        rssiProb = aps.get(i).getRssiProb().clone();
+                        rssiProb[j] = ((double) aps.get(i).getRssiValue()[j]) / totalSamples;
+                        aps.get(i).setRssiProb(rssiProb);
+                    }
+                    if ((j % 100 == 99) & (flag % 2 == 0)) {//last element of the each cell
+                        j = (int) (flag / 2) * 100; //reset j so we can go through again to calculate rssiProb
+                        flag++;
+                    } else if ((j % 100 == 99) & (flag % 2 == 1)) {
+                        flag++;
+                    }
+                }
+            }
+            try {
+                String string_aps = aps.toString();
+                string_aps = string_aps.substring(1, string_aps.length() - 1); //remove []
+                string_aps = string_aps.replaceAll(" ", "");
+                outputStream = openFileOutput("ufCombinedBayes" + ".csv", Context.MODE_PRIVATE);
+                outputStream.write(string_aps.getBytes());
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private StringBuilder combiner(String file, StringBuilder sb) {
         File first = new File(getApplicationContext().getFilesDir(), file);
         if (first.exists()) {
@@ -874,4 +1054,69 @@ public class MainActivity extends Activity implements SensorEventListener {
         return sb;
     }
 
+    public class accessPoint {
+        private String bssid;
+        private int[] rssiValue; //every cell takes 100 slots
+        private double[] rssiProb;
+
+        public accessPoint(String bssid, int[] rssiValue) {
+            this.bssid = bssid;
+            this.rssiValue = rssiValue;
+            this.rssiProb = new double[1600];
+        }
+
+        public accessPoint(String bssid) {
+            this.bssid = bssid;
+            int[] temp = new int[1600];
+            Arrays.fill(temp, 1);//smoothing, to prevent zero probability
+            this.rssiValue = temp.clone();
+            //this.rssiValue = new int[1600];
+            this.rssiProb = new double[1600];
+        }
+
+        public String getBssid() {
+            return bssid;
+        }
+
+        public void setBssid(String bssid) {
+            this.bssid = bssid;
+        }
+
+        public int[] getRssiValue() {
+            return rssiValue;
+        }
+
+        public void setRssiValue(int[] rssiValue) {
+            this.rssiValue = rssiValue.clone();
+        }
+
+        public double[] getRssiProb() {
+            return rssiProb;
+        }
+
+        public void setRssiProb(double[] rssiProb) {
+            this.rssiProb = rssiProb.clone();
+        }
+
+        @Override
+        public String toString() {
+            return "@" + bssid + "@" + Arrays.toString(rssiProb) //change rssiProb to rssiValue to get count instead
+                    .replace("[", "").replace("]", "");
+            //result for the array string is every 100 to each cell starting from 1, will have 1600 rssi values counts
+        }
+
+        @Override //overide .contains and .indexof
+        public boolean equals(Object o) {
+            if (o instanceof accessPoint) {
+                String toCompare = ((accessPoint) o).bssid;
+                return bssid.equals(toCompare);
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return bssid.hashCode();
+        }
+    }
 }
