@@ -179,7 +179,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                         textView.setText("A file " + csvName + ".csv will be created, when stop is pressed.");
                         started = true;
                         try {
-                            outputStream = openFileOutput(csvName + ".csv", Context.MODE_PRIVATE);
+                            //change append back to private after more data collection
+                            outputStream = openFileOutput(csvName + ".csv", Context.MODE_APPEND);
                             //outputStream.write("Hello World test!\n".getBytes()); //for debugging
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -277,11 +278,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                             return o2.second.compareTo(o1.second);
                         }
                     });
-                    double probWifi = 0.0; //denominator of bayes formula
-                    double currentRssiProb = 0.0;
-                    double[] numerator = new double[16];
                     for (Pair<String, Integer> currentBSSID : currentScan) {
-                        probWifi = 0.0;
+                        double probWifi = 0.0; //denominator of bayes formula
+                        double currentRssiProb = 0.0;
+                        double[] numerator = new double[16];
                         if (bayesLookup.containsKey(currentBSSID.first) && (currentBSSID.second * -1) < 100) {//only compared ssids in training data
                             for (int i = 0; i < cellProb.length; i++) {
                                 currentRssiProb = Double.parseDouble(
@@ -389,8 +389,21 @@ public class MainActivity extends Activity implements SensorEventListener {
                         editText.setText("");
                     } else if (editText.getText().toString().contains("Bayes")) {
                         checkCellBayes("bayesCell2-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell4-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell5-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell6-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell7-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell8-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell9-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell10-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell11-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell12-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell13-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell14-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell15-2.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell16-2.csv", "ufCombinedBayes.csv");
                         editText.setText("");
-                        textView.setText("WIP");
+                        textView.setText("Files to create conf matrix created");
                     } else {
                         textView.setText("Please enter string with 'KNN' or 'Bayes', which you want to test\n");
                     }
@@ -805,7 +818,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
     //only checks 1 iteration
     private int[] checkCellBayes(String fileTest, String fileTrain) {
-        int[] checked = new int[16]; //each cell corresponds to total count of cell1, cell2, etc
+        int[] checked = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //each cell corresponds to total count of cell1, cell2, etc
         //do hamming distance with KNN
         StringBuilder sbTest = new StringBuilder();
         sbTest = combiner(fileTest, sbTest);
@@ -820,17 +833,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         for (int i = 1; i < trainingBssidString.length; i=i+2) {
             bayesLookupTest.put(trainingBssidString[i], trainingBssidString[i+1].split(","));
         } //the values are in string, so change to double when need to calculate probability
-
+        double[] cellProbTest = new double[16];
         String[] leftoverTestInner;
         for(int j=0; j<leftoverTest.length; j++) { //go thorough each sample, 1 iteration
-            double[] cellProbTest = new double[16];
+            cellProbTest = new double[16];
             for (int i = 0; i < 16; i++) {
                 cellProbTest[i] = 1.0/16.0;
             }
             leftoverTestInner = leftoverTest[j].split(",");
-            double probWifi = 0.0; //denominator of bayes formula
-            double currentRssiProb = 0.0;
-            double[] numerator = new double[16];
             ArrayList<Pair<String, Integer>> currentScan =
                     new ArrayList<Pair<String, Integer>>();
             for (int i=1; i<leftoverTestInner.length; i=i+3){
@@ -838,7 +848,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                         Integer.parseInt(leftoverTestInner[i+1])));
             }
             for (Pair<String, Integer> currentBSSID : currentScan) {
-                probWifi = 0.0;
+                double probWifi = 0.0; //denominator of bayes formula
+                double currentRssiProb = 0.0;
+                double[] numerator = new double[16];
                 if (bayesLookupTest.containsKey(currentBSSID.first) && (currentBSSID.second * -1) < 100) {//only compared ssids in training data
                     for (int i = 0; i < cellProbTest.length; i++) {
                         currentRssiProb = Double.parseDouble(
@@ -852,11 +864,12 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
             }
             double highestP = 0.0;
-            int flag = 0;
-            for (int i = 0; i < 16; i++) {
+            int flag=0;
+            int i=0;
+            for (i=0; i < 16; i++) {
                 if (cellProbTest[i] > highestP) {
-                    flag++;
                     highestP = cellProbTest[i];
+                    flag = i;
                 }
             }
             checked[flag]++;
@@ -864,6 +877,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         try {
             outputStream = openFileOutput("checked_" + fileTest, Context.MODE_PRIVATE);
             outputStream.write((Arrays.toString(checked)+"\n").getBytes());
+            //for debugging: cellprobtest of last sample
+            //outputStream.write((Arrays.toString(cellProbTest)+"\n").getBytes());
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -983,7 +999,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             aps.get(aps.indexOf(new accessPoint(currentBssid))).setRssiValue(rssiValue);
                         } else {
                             rssiValue = aps.get(aps.indexOf(new accessPoint(currentBssid))).getRssiValue().clone();
-                            rssiValue[(Integer.parseInt(combinedBayes[i]) - 1) * 100 + currentRssi]++; //cell number-1 *100 is where the rssi count is stored
+                            rssiValue[(Integer.parseInt(combinedBayes[i]) - 1) * 100 + currentRssi]+=10; //cell number-1 *100 is where the rssi count is stored
                             aps.get(aps.indexOf(new accessPoint(currentBssid))).setRssiValue(rssiValue);
                         }
                     }
