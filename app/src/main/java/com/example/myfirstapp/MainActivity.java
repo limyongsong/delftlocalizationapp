@@ -1,6 +1,9 @@
 package com.example.myfirstapp;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Point;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -13,10 +16,13 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.util.Pair;
+import android.view.Display;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TableLayout;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
@@ -90,6 +96,15 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     Button buttonStart, buttonStop, buttonInitial, buttonLocateMe, buttonTest, buttonTrain;
 
+    /**
+     * The canvas for pf
+     */
+    private Canvas canvas;
+    ImageView canvasView;
+
+    /** The table for bayes**/
+    private TableLayout tableLayout;
+
     FileOutputStream outputStream;
 
     boolean started = false, refreshed = true;
@@ -145,6 +160,19 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonTest = (Button) findViewById(R.id.button5);
         // Create the Locate Me data collcetion button
         buttonTrain = (Button) findViewById(R.id.button6);
+        // get the screen dimensions
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+        //Create the canvas
+        canvasView = (ImageView) findViewById(R.id.canvas);
+        Bitmap blankBitmap = Bitmap.createBitmap(width,height, Bitmap.Config.ARGB_8888);
+        canvas = new Canvas(blankBitmap);
+        canvasView.setImageBitmap(blankBitmap);
+
+        tableLayout = (TableLayout) findViewById(R.id.probTable);
 
         // Set the sensor manager
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -225,36 +253,47 @@ public class MainActivity extends Activity implements SensorEventListener {
         buttonInitial.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                cellProb = new double[16];
-                for (int i = 0; i < 16; i++) {
-                    cellProb[i] = 0.0625;
+                //locate user
+                if (editText.getText().toString().contains("Bayes")) {
+                    canvasView.setVisibility(v.INVISIBLE);
+                    tableLayout.setVisibility(v.VISIBLE);
+                    cellProb = new double[16];
+                    for (int i = 0; i < 16; i++) {
+                        cellProb[i] = 0.0625;
+                    }
+                    textView1.setText(numberFormat.format(cellProb[0]));
+                    textView2.setText(numberFormat.format(cellProb[1]));
+                    textView3.setText(numberFormat.format(cellProb[2]));
+                    textView4.setText(numberFormat.format(cellProb[3]));
+                    textView5.setText(numberFormat.format(cellProb[4]));
+                    textView6.setText(numberFormat.format(cellProb[5]));
+                    textView7.setText(numberFormat.format(cellProb[6]));
+                    textView8.setText(numberFormat.format(cellProb[7]));
+                    textView9.setText(numberFormat.format(cellProb[8]));
+                    textView10.setText(numberFormat.format(cellProb[9]));
+                    textView11.setText(numberFormat.format(cellProb[10]));
+                    textView12.setText(numberFormat.format(cellProb[11]));
+                    textView13.setText(numberFormat.format(cellProb[12]));
+                    textView14.setText(numberFormat.format(cellProb[13]));
+                    textView15.setText(numberFormat.format(cellProb[14]));
+                    textView16.setText(numberFormat.format(cellProb[15]));
+                    textViewBestCell.setText("");
+                    StringBuilder trainingData = new StringBuilder();
+                    trainingData = combiner("ufCombinedBayes.csv", trainingData);
+                    String[] trainingBssidString;
+                    trainingBssidString = trainingData.toString().split("@");
+                    bayesLookup.clear();
+                    for (int i = 1; i < trainingBssidString.length; i = i + 2) {
+                        bayesLookup.put(trainingBssidString[i], trainingBssidString[i + 1].split(","));
+                    } //the values are in string, so change to double when need to calculate probability
+                    textView.setText("Bayes mode selected");
+                } else if (editText.getText().toString().contains("PF")) {
+                    tableLayout.setVisibility(v.INVISIBLE);
+                    canvasView.setVisibility(v.VISIBLE);
+                    textView.setText("WIP\n");
+                } else {
+                    textView.setText("Please enter string with 'Bayes' or 'PF', which you want to train\n");
                 }
-                textView1.setText(numberFormat.format(cellProb[0]));
-                textView2.setText(numberFormat.format(cellProb[1]));
-                textView3.setText(numberFormat.format(cellProb[2]));
-                textView4.setText(numberFormat.format(cellProb[3]));
-                textView5.setText(numberFormat.format(cellProb[4]));
-                textView6.setText(numberFormat.format(cellProb[5]));
-                textView7.setText(numberFormat.format(cellProb[6]));
-                textView8.setText(numberFormat.format(cellProb[7]));
-                textView9.setText(numberFormat.format(cellProb[8]));
-                textView10.setText(numberFormat.format(cellProb[9]));
-                textView11.setText(numberFormat.format(cellProb[10]));
-                textView12.setText(numberFormat.format(cellProb[11]));
-                textView13.setText(numberFormat.format(cellProb[12]));
-                textView14.setText(numberFormat.format(cellProb[13]));
-                textView15.setText(numberFormat.format(cellProb[14]));
-                textView16.setText(numberFormat.format(cellProb[15]));
-                textViewBestCell.setText("");
-                StringBuilder trainingData = new StringBuilder();
-                trainingData = combiner("ufCombinedBayes.csv", trainingData);
-                String[] trainingBssidString;
-                trainingBssidString = trainingData.toString().split("@");
-                bayesLookup.clear();
-                for (int i = 1; i < trainingBssidString.length; i=i+2) {
-                    bayesLookup.put(trainingBssidString[i], trainingBssidString[i+1].split(","));
-                } //the values are in string, so change to double when need to calculate probability
-                textView.setText("Bayes mode selected");
             }
         });
         // Create a click listener for our LocateMe button, to see which cell we are at, can iterate
@@ -263,6 +302,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             public void onClick(View v) {
                 //locate user
                 if (editText.getText().toString().contains("Bayes")) {
+                    canvasView.setVisibility(v.INVISIBLE);
+                    tableLayout.setVisibility(v.VISIBLE);
                     // Start a wifi scan.
                     wifiManager.startScan();
                     wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -323,7 +364,8 @@ public class MainActivity extends Activity implements SensorEventListener {
 
                     textView.setText("Iteration finished\n");
                 } else if (editText.getText().toString().contains("PF")) {
-                    editText.setText("");
+                    tableLayout.setVisibility(v.INVISIBLE);
+                    canvasView.setVisibility(v.VISIBLE);
                     textView.setText("WIP\n");
                 } else {
                     textView.setText("Please enter string with 'Bayes' or 'PF', which you want to train\n");
