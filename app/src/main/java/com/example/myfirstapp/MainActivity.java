@@ -177,8 +177,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
-        int width = size.x;
+        int width = size.x+2200;
         int height = size.y;
+
+        //Create the canvas
+        canvasView = (ImageView) findViewById(R.id.canvas);
+        Bitmap blankBitmap = Bitmap.createBitmap(width,height, Bitmap.Config.ARGB_8888);
+        canvas = new Canvas(blankBitmap);
+        canvasView.setImageBitmap(blankBitmap);
 
         // create a drawable object of the point
         //will need a for loop for 5000-10000 points
@@ -186,8 +192,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         drawable.getPaint().setColor(Color.BLUE);
         drawable.setBounds(width/2-20, height/2-20, width/2+20, height/2+20);
 
-        //Limits for top and bottom is height/2-500 or +500, 1001 pixels (1 pixel is the particle) for 14.3m actual height
-        //Limits for left and right is
+        //Limits for top and bottom is height/2-500 or +500, 1000~1001 pixels for 14.3m actual height
+        //Limits for left and right is height/2-1440, 2880 pixels for 72m actual width
         walls = new ArrayList<>();
         ShapeDrawable d = new ShapeDrawable(new RectShape());
         d.setBounds(width/2-200, height/2-90, width/2+200, height/2-80);
@@ -195,26 +201,25 @@ public class MainActivity extends Activity implements SensorEventListener {
         d2.setBounds(width/2-200, height/2+60, width/2+200, height/2+70);
         ShapeDrawable d3 = new ShapeDrawable(new RectShape());
         d3.setBounds(width/2+200, height/2-90, width/2+210, height/2+70);
+        //top bound
         ShapeDrawable d4 = new ShapeDrawable(new RectShape());
-        d4.setBounds(width/2-400, height/2+490, width/2+400, height/2+500);
+        d4.setBounds(width/2-1440, height/2+490, width/2+1440, height/2+500);
+        //bottom bound
         ShapeDrawable d5 = new ShapeDrawable(new RectShape());
-        d5.setBounds(width/2-400, height/2-500, width/2+400, height/2-490);
+        d5.setBounds(width/2-1440, height/2-500, width/2+1440, height/2-490);
+        //right bound
         ShapeDrawable d6 = new ShapeDrawable(new RectShape());
-        d6.setBounds(width/2+790, height/2-90, width/2+800, height/2+70);
-/*        ShapeDrawable d7 = new ShapeDrawable(new RectShape());
-        d7.setBounds(width/2-400, height/2-500, width/2+400, height/2-490);*/
+        d6.setBounds(width/2+1430, height/2-500, width/2+1440, height/2+500);
+        //left bound
+        ShapeDrawable d7 = new ShapeDrawable(new RectShape());
+        d7.setBounds(width/2-1440, height/2-500, width/2-1430, height/2+500);
         walls.add(d);
         walls.add(d2);
         walls.add(d3);
         walls.add(d4);
         walls.add(d5);
         walls.add(d6);
-        //walls.add(d7);
-        //Create the canvas
-        canvasView = (ImageView) findViewById(R.id.canvas);
-        Bitmap blankBitmap = Bitmap.createBitmap(width,height, Bitmap.Config.ARGB_8888);
-        canvas = new Canvas(blankBitmap);
-        canvasView.setImageBitmap(blankBitmap);
+        walls.add(d7);
 
         // draw the objects
         drawable.draw(canvas);
