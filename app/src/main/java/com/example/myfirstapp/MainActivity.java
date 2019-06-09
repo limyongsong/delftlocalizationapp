@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.graphics.drawable.shapes.RectShape;
@@ -129,7 +130,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     //used to get data every certain time interval
     Handler h = new Handler();
-    int delay = 1000; //1 second=1000 milisecond, 500=500milisecond
+    int delay = 500; //1 second=1000 milisecond, 500=500milisecond
     Runnable runnable;
 
     @Override
@@ -194,95 +195,92 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         //Limits for top and bottom is height/2-500 or +500, 1000~1001 pixels for 14.3m actual height
         //Limits for left and right is height/2-1440, 2880 pixels for 72m actual width
+        //Should be 2880x572 pixels (scaled 40 times from 72x14.3m) walls 5-10pixel thick
         walls = new ArrayList<>();
 //Left of Cell 16 and Cell 14
         ShapeDrawable d1 = new ShapeDrawable(new RectShape());
-        d1.setBounds(width/2-1445, height/2-505, width/2-965, height/2-73);
+        d1.setBounds(width/2-1445, height/2-291, width/2-965, height/2-42);
         ShapeDrawable d2 = new ShapeDrawable(new RectShape());
-        d2.setBounds(width/2-1445, height/2+73, width/2-965, height/2+505);
+        d2.setBounds(width/2-1445, height/2+42, width/2-965, height/2+291);
 
 //North Rooms - Left + Up + Right
 
 //Cell 16
         ShapeDrawable d3 = new ShapeDrawable(new RectShape());
-        d3.setBounds(width/2-965, height/2-505, width/2-955, height/2-73);
+        d3.setBounds(width/2-965, height/2-291, width/2-955, height/2-42);
         ShapeDrawable d4 = new ShapeDrawable(new RectShape());
-        d4.setBounds(width/2-955, height/2-505, width/2-805, height/2-495);
+        d4.setBounds(width/2-955, height/2-291, width/2-805, height/2-281);
         ShapeDrawable d5 = new ShapeDrawable(new RectShape());
-        d5.setBounds(width/2-805, height/2-505, width/2-800, height/2-73);
+        d5.setBounds(width/2-805, height/2-291, width/2-800, height/2-42);
 
 //Cell 13
         ShapeDrawable d6 = new ShapeDrawable(new RectShape());
-        d6.setBounds(width/2-800, height/2-505, width/2-795, height/2-73);
+        d6.setBounds(width/2-800, height/2-291, width/2-795, height/2-42);
         ShapeDrawable d7 = new ShapeDrawable(new RectShape());
-        d7.setBounds(width/2-795, height/2-505, width/2-645, height/2-495);
+        d7.setBounds(width/2-795, height/2-291, width/2-645, height/2-281);
         ShapeDrawable d8 = new ShapeDrawable(new RectShape());
-        d8.setBounds(width/2-645, height/2-505, width/2-640, height/2-73);
+        d8.setBounds(width/2-645, height/2-291, width/2-640, height/2-42);
 
 //Cell 11
         ShapeDrawable d9 = new ShapeDrawable(new RectShape());
-        d9.setBounds(width/2-640, height/2-505, width/2-635, height/2-73);
+        d9.setBounds(width/2-640, height/2-291, width/2-635, height/2-42);
         ShapeDrawable d10 = new ShapeDrawable(new RectShape());
-        d10.setBounds(width/2-635, height/2-505, width/2-485, height/2-495);
+        d10.setBounds(width/2-635, height/2-291, width/2-485, height/2-281);
         ShapeDrawable d11 = new ShapeDrawable(new RectShape());
-        d11.setBounds(width/2-485, height/2-505, width/2-480, height/2-73);
+        d11.setBounds(width/2-485, height/2-291, width/2-480, height/2-42);
 
 //Cell 3
         ShapeDrawable d12 = new ShapeDrawable(new RectShape());
-        d12.setBounds(width/2+480, height/2-505, width/2+485, height/2-73);
+        d12.setBounds(width/2+480, height/2-291, width/2+485, height/2-42);
         ShapeDrawable d13 = new ShapeDrawable(new RectShape());
-        d13.setBounds(width/2+485, height/2-505, width/2+635, height/2-495);
+        d13.setBounds(width/2+485, height/2-291, width/2+635, height/2-281);
         ShapeDrawable d14 = new ShapeDrawable(new RectShape());
-        d14.setBounds(width/2+635, height/2-505, width/2+640, height/2-73);
+        d14.setBounds(width/2+635, height/2-291, width/2+640, height/2-42);
 
 //Between Cell 11 and 3
         ShapeDrawable d15 = new ShapeDrawable(new RectShape());
-        d15.setBounds(width/2-480, height/2-505, width/2+480, height/2-73);
+        d15.setBounds(width/2-480, height/2-291, width/2+480, height/2-42);
 
 //Right of Cell 3
         ShapeDrawable d16 = new ShapeDrawable(new RectShape());
-        d16.setBounds(width/2+635, height/2-505, width/2+1445, height/2-73);
-
-//Left of corridor to Cell 14
-        ShapeDrawable d17 = new ShapeDrawable(new RectShape());
-        d17.setBounds(width/2-960, height/2-73, width/2-860, height/2-290);
+        d16.setBounds(width/2+635, height/2-291, width/2+1445, height/2-42);
 
 //South Rooms - Left + Down + Right
 
 //Cell 14
         ShapeDrawable d18 = new ShapeDrawable(new RectShape());
-        d18.setBounds(width/2-965, height/2+285, width/2-955, height/2+505);
+        d18.setBounds(width/2-965, height/2+161, width/2-955, height/2+291);
         ShapeDrawable d19 = new ShapeDrawable(new RectShape());
-        d19.setBounds(width/2-965, height/2+285, width/2-875, height/2+295);
+        d19.setBounds(width/2-965, height/2+161, width/2-875, height/2+171);
         //block for passageway
         ShapeDrawable d20 = new ShapeDrawable(new RectShape());
-        d20.setBounds(width/2-965, height/2+73, width/2-875, height/2+295);
+        d20.setBounds(width/2-965, height/2+42, width/2-875, height/2+171);
         //bottom of cell14
         ShapeDrawable d21 = new ShapeDrawable(new RectShape());
-        d21.setBounds(width/2-965, height/2+495, width/2-800, height/2+505);
+        d21.setBounds(width/2-965, height/2+281, width/2-800, height/2+291);
 
 
 //Right of Cell 14
         ShapeDrawable d22 = new ShapeDrawable(new RectShape());
-        d22.setBounds(width/2-800, height/2+73, width/2+475, height/2+505);
+        d22.setBounds(width/2-800, height/2+42, width/2+475, height/2+291);
 
 //Cell 1
         ShapeDrawable d23 = new ShapeDrawable(new RectShape());
-        d23.setBounds(width/2+475, height/2+73, width/2+485, height/2+505);
+        d23.setBounds(width/2+475, height/2+42, width/2+485, height/2+291);
         ShapeDrawable d24 = new ShapeDrawable(new RectShape());
-        d24.setBounds(width/2+475, height/2+495, width/2+635, height/2+505);
+        d24.setBounds(width/2+475, height/2+281, width/2+635, height/2+291);
 
 //Right of Cell 1
         ShapeDrawable d25 = new ShapeDrawable(new RectShape());
-        d25.setBounds(width/2+635, height/2+73, width/2+1445, height/2+505);
+        d25.setBounds(width/2+635, height/2+42, width/2+1445, height/2+291);
 
 //Left corridor end
         ShapeDrawable d26 = new ShapeDrawable(new RectShape());
-        d26.setBounds(width/2-1445, height/2-73, width/2-1435, height/2+73);
+        d26.setBounds(width/2-1445, height/2-42, width/2-1435, height/2+42);
 
 //Right corridor end
         ShapeDrawable d27 = new ShapeDrawable(new RectShape());
-        d27.setBounds(width/2+1435, height/2-73, width/2+1445, height/2+73);
+        d27.setBounds(width/2+1435, height/2-42, width/2+1445, height/2+42);
 
         walls.add(d1);
         walls.add(d2);
@@ -299,8 +297,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         walls.add(d13);
         walls.add(d14);
         walls.add(d15);
-        walls.add(d16);
-        walls.add(d17);
+        walls.add(d16); //d17 was unnecessary and removed
         walls.add(d18);
         walls.add(d19);
         walls.add(d20);
@@ -1328,5 +1325,27 @@ public class MainActivity extends Activity implements SensorEventListener {
         public int hashCode() {
             return bssid.hashCode();
         }
+    }
+    /**
+     * Determines if the drawable dot intersects with any of the walls.
+     * @return True if that's true, false otherwise.
+     */
+    private boolean isCollision() {
+        for(ShapeDrawable wall : walls) {
+            if(isCollision(wall,drawable))
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Determines if two shapes intersect.
+     * @param first The first shape.
+     * @param second The second shape.
+     * @return True if they intersect, false otherwise.
+     */
+    private boolean isCollision(ShapeDrawable first, ShapeDrawable second) {
+        Rect firstRect = new Rect(first.getBounds());
+        return firstRect.intersect(second.getBounds());
     }
 }
