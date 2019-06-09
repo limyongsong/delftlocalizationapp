@@ -190,36 +190,127 @@ public class MainActivity extends Activity implements SensorEventListener {
         //will need a for loop for 5000-10000 points
         drawable = new ShapeDrawable(new OvalShape());
         drawable.getPaint().setColor(Color.BLUE);
-        drawable.setBounds(width/2-20, height/2-20, width/2+20, height/2+20);
+        drawable.setBounds(width/2-5, height/2-5, width/2+5, height/2+5);
 
         //Limits for top and bottom is height/2-500 or +500, 1000~1001 pixels for 14.3m actual height
         //Limits for left and right is height/2-1440, 2880 pixels for 72m actual width
         walls = new ArrayList<>();
-        ShapeDrawable d = new ShapeDrawable(new RectShape());
-        d.setBounds(width/2-200, height/2-90, width/2+200, height/2-80);
+//Left of Cell 16 and Cell 14
+        ShapeDrawable d1 = new ShapeDrawable(new RectShape());
+        d1.setBounds(width/2-1445, height/2-505, width/2-965, height/2-73);
         ShapeDrawable d2 = new ShapeDrawable(new RectShape());
-        d2.setBounds(width/2-200, height/2+60, width/2+200, height/2+70);
+        d2.setBounds(width/2-1445, height/2+73, width/2-965, height/2+505);
+
+//North Rooms - Left + Up + Right
+
+//Cell 16
         ShapeDrawable d3 = new ShapeDrawable(new RectShape());
-        d3.setBounds(width/2+200, height/2-90, width/2+210, height/2+70);
-        //top bound
+        d3.setBounds(width/2-965, height/2-505, width/2-955, height/2-73);
         ShapeDrawable d4 = new ShapeDrawable(new RectShape());
-        d4.setBounds(width/2-1440, height/2+490, width/2+1440, height/2+500);
-        //bottom bound
+        d4.setBounds(width/2-955, height/2-505, width/2-805, height/2-495);
         ShapeDrawable d5 = new ShapeDrawable(new RectShape());
-        d5.setBounds(width/2-1440, height/2-500, width/2+1440, height/2-490);
-        //right bound
+        d5.setBounds(width/2-805, height/2-505, width/2-800, height/2-73);
+
+//Cell 13
         ShapeDrawable d6 = new ShapeDrawable(new RectShape());
-        d6.setBounds(width/2+1430, height/2-500, width/2+1440, height/2+500);
-        //left bound
+        d6.setBounds(width/2-800, height/2-505, width/2-795, height/2-73);
         ShapeDrawable d7 = new ShapeDrawable(new RectShape());
-        d7.setBounds(width/2-1440, height/2-500, width/2-1430, height/2+500);
-        walls.add(d);
+        d7.setBounds(width/2-795, height/2-505, width/2-645, height/2-495);
+        ShapeDrawable d8 = new ShapeDrawable(new RectShape());
+        d8.setBounds(width/2-645, height/2-505, width/2-640, height/2-73);
+
+//Cell 11
+        ShapeDrawable d9 = new ShapeDrawable(new RectShape());
+        d9.setBounds(width/2-640, height/2-505, width/2-635, height/2-73);
+        ShapeDrawable d10 = new ShapeDrawable(new RectShape());
+        d10.setBounds(width/2-635, height/2-505, width/2-485, height/2-495);
+        ShapeDrawable d11 = new ShapeDrawable(new RectShape());
+        d11.setBounds(width/2-485, height/2-505, width/2-480, height/2-73);
+
+//Cell 3
+        ShapeDrawable d12 = new ShapeDrawable(new RectShape());
+        d12.setBounds(width/2+480, height/2-505, width/2+485, height/2-73);
+        ShapeDrawable d13 = new ShapeDrawable(new RectShape());
+        d13.setBounds(width/2+485, height/2-505, width/2+635, height/2-495);
+        ShapeDrawable d14 = new ShapeDrawable(new RectShape());
+        d14.setBounds(width/2+635, height/2-505, width/2+640, height/2-73);
+
+//Between Cell 11 and 3
+        ShapeDrawable d15 = new ShapeDrawable(new RectShape());
+        d15.setBounds(width/2-480, height/2-505, width/2+480, height/2-73);
+
+//Right of Cell 3
+        ShapeDrawable d16 = new ShapeDrawable(new RectShape());
+        d16.setBounds(width/2+635, height/2-505, width/2+1445, height/2-73);
+
+//Left of corridor to Cell 14
+        ShapeDrawable d17 = new ShapeDrawable(new RectShape());
+        d17.setBounds(width/2-960, height/2-73, width/2-860, height/2-290);
+
+//South Rooms - Left + Down + Right
+
+//Cell 14
+        ShapeDrawable d18 = new ShapeDrawable(new RectShape());
+        d18.setBounds(width/2-965, height/2+285, width/2-955, height/2+505);
+        ShapeDrawable d19 = new ShapeDrawable(new RectShape());
+        d19.setBounds(width/2-965, height/2+285, width/2-875, height/2+295);
+        //block for passageway
+        ShapeDrawable d20 = new ShapeDrawable(new RectShape());
+        d20.setBounds(width/2-965, height/2+73, width/2-875, height/2+295);
+        //bottom of cell14
+        ShapeDrawable d21 = new ShapeDrawable(new RectShape());
+        d21.setBounds(width/2-965, height/2+495, width/2-800, height/2+505);
+
+
+//Right of Cell 14
+        ShapeDrawable d22 = new ShapeDrawable(new RectShape());
+        d22.setBounds(width/2-800, height/2+73, width/2+475, height/2+505);
+
+//Cell 1
+        ShapeDrawable d23 = new ShapeDrawable(new RectShape());
+        d23.setBounds(width/2+475, height/2+73, width/2+485, height/2+505);
+        ShapeDrawable d24 = new ShapeDrawable(new RectShape());
+        d24.setBounds(width/2+475, height/2+495, width/2+635, height/2+505);
+
+//Right of Cell 1
+        ShapeDrawable d25 = new ShapeDrawable(new RectShape());
+        d25.setBounds(width/2+635, height/2+73, width/2+1445, height/2+505);
+
+//Left corridor end
+        ShapeDrawable d26 = new ShapeDrawable(new RectShape());
+        d26.setBounds(width/2-1445, height/2-73, width/2-1435, height/2+73);
+
+//Right corridor end
+        ShapeDrawable d27 = new ShapeDrawable(new RectShape());
+        d27.setBounds(width/2+1435, height/2-73, width/2+1445, height/2+73);
+
+        walls.add(d1);
         walls.add(d2);
         walls.add(d3);
         walls.add(d4);
         walls.add(d5);
         walls.add(d6);
         walls.add(d7);
+        walls.add(d8);
+        walls.add(d9);
+        walls.add(d10);
+        walls.add(d11);
+        walls.add(d12);
+        walls.add(d13);
+        walls.add(d14);
+        walls.add(d15);
+        walls.add(d16);
+        walls.add(d17);
+        walls.add(d18);
+        walls.add(d19);
+        walls.add(d20);
+        walls.add(d21);
+        walls.add(d22);
+        walls.add(d23);
+        walls.add(d24);
+        walls.add(d25);
+        walls.add(d26);
+        walls.add(d27);
 
         // draw the objects
         drawable.draw(canvas);
@@ -487,7 +578,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         textView.setText("Conf Matrix stored in internal storage\n");
                         editText.setText("");
                     } else if (editText.getText().toString().contains("Bayes")) {
-                        checkCellBayes("bayesCell1-1.csv", "ufCombinedBayes.csv");
+                        checkCellBayes("bayesCell1-2.csv", "ufCombinedBayes.csv");
                         checkCellBayes("bayesCell2-2.csv", "ufCombinedBayes.csv");
                         checkCellBayes("bayesCell3-2.csv", "ufCombinedBayes.csv");
                         checkCellBayes("bayesCell4-2.csv", "ufCombinedBayes.csv");
