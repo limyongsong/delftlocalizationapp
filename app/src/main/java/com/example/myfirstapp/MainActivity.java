@@ -28,6 +28,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TableLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -62,6 +63,11 @@ public class MainActivity extends Activity implements SensorEventListener {
      * The accelerometer.
      */
     private Sensor accelerometer;
+    private Sensor stepCounter; //LG stylus 3 doesnt seem to have this
+    private Sensor rotationVector;
+    float[] orientationVals = new float[3]; //if orientationvals[0] (yaw) changes more than 90 we made a turn
+                                            //when turn left will minus when turn right will add, it flips at 180/-180
+                                            // pitch, orientationvals[1], should be held at around 90 degrees
     /**
      * The wifi manager.
      */
@@ -82,6 +88,8 @@ public class MainActivity extends Activity implements SensorEventListener {
      * Accelerometer z value
      */
     private float aZ = 0;
+
+    private float steps = 0;
 
     private float aX_Range = 0, aY_Range = 0, aZ_Range = 0, aX_Max = 0, aY_Max = 0, aZ_Max = 0, aX_Min = 0, aY_Min = 0, aZ_Min = 0;
     //probabilities of each cell
@@ -190,11 +198,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         // create a drawable object of the point
         //will need a for loop for 5000-10000 points
         drawable = new ShapeDrawable(new OvalShape());
-        drawable.getPaint().setColor(Color.BLUE);
-        drawable.setBounds(width/2-5, height/2-5, width/2+5, height/2+5);
+        drawable.getPaint().setColor(Color.RED);
+        drawable.setBounds(width/2-3, height/2-3, width/2+3, height/2+3);
 
-        //Limits for top and bottom is height/2-500 or +500, 1000~1001 pixels for 14.3m actual height
-        //Limits for left and right is height/2-1440, 2880 pixels for 72m actual width
         //Should be 2880x572 pixels (scaled 40 times from 72x14.3m) walls 5-10pixel thick
         walls = new ArrayList<>();
 //Left of Cell 16 and Cell 14
@@ -330,8 +336,35 @@ public class MainActivity extends Activity implements SensorEventListener {
                     SensorManager.SENSOR_DELAY_NORMAL);
         } else {
             // No accelerometer!
+            Toast.makeText(this, "Type accelerometer sensor not found", Toast.LENGTH_SHORT).show();
         }
 
+        // if the default stepcounter
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null) {
+            // set accelerometer
+            stepCounter = sensorManager
+                    .getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            // register 'this' as a listener that updates values. Each time a sensor value changes,
+            // the method 'onSensorChanged()' is called.
+            sensorManager.registerListener(this, stepCounter,
+                    SensorManager.SENSOR_DELAY_NORMAL);
+        } else {
+            // No stepcounter
+            Toast.makeText(this, "Type stepcounter sensor not found", Toast.LENGTH_SHORT).show();
+        }
+        // if the default rotation vector
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null) {
+            // set accelerometer
+            rotationVector = sensorManager
+                    .getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+            // register 'this' as a listener that updates values. Each time a sensor value changes,
+            // the method 'onSensorChanged()' is called.
+            sensorManager.registerListener(this, rotationVector,
+                    SensorManager.SENSOR_DELAY_NORMAL);
+        } else {
+            // No rotation vector
+            Toast.makeText(this, "Type rotation sensor not found", Toast.LENGTH_SHORT).show();
+        }
         // Set the wifi manager
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -432,6 +465,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } else if (editText.getText().toString().contains("PF")) {
                     tableLayout.setVisibility(v.INVISIBLE);
                     canvasView.setVisibility(v.VISIBLE);
+                    textViewBestCell.setText("");
                     textView.setText("WIP\n");
                 } else {
                     textView.setText("Please enter string with 'Bayes' or 'PF', which you want to train\n");
@@ -508,6 +542,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } else if (editText.getText().toString().contains("PF")) {
                     tableLayout.setVisibility(v.INVISIBLE);
                     canvasView.setVisibility(v.VISIBLE);
+                    textViewBestCell.setText("");
                     textView.setText("WIP\n");
                 } else {
                     textView.setText("Please enter string with 'Bayes' or 'PF', which you want to train\n");
@@ -677,6 +712,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } else if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 1) {
                     refreshed = true;
                     textViewMotion.setText("Walk");
+                    //textView.setText(String.valueOf(steps));
                 } else {
                     refreshed = true;
                     textViewMotion.setText("Still");
@@ -686,6 +722,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         }, delay);
         super.onResume();
         sensorManager.registerListener(this, accelerometer,
+                SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, stepCounter,
+                SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, rotationVector,
                 SensorManager.SENSOR_DELAY_NORMAL);
     }
 
@@ -704,32 +744,59 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        // get the the x,y,z values of the accelerometer
-        if (refreshed) {
-            aX = event.values[0];
-            aY = event.values[1];
-            aZ = event.values[2];
-            aX_Max = aX;
-            aY_Max = aY;
-            aZ_Max = aZ;
-            aX_Min = aX;
-            aY_Min = aY;
-            aZ_Min = aZ;
-        } else {
-            aX = event.values[0];
-            aY = event.values[1];
-            aZ = event.values[2];
-            aX_Max = Math.max(aX_Max, aX);
-            aY_Max = Math.max(aY_Max, aY);
-            aZ_Max = Math.max(aZ_Max, aZ);
-            aX_Min = Math.min(aX_Min, aX);
-            aY_Min = Math.min(aY_Min, aY);
-            aZ_Min = Math.min(aZ_Min, aZ);
-            aX_Range = aX_Max - aX_Min;
-            aY_Range = aY_Max - aY_Min;
-            aZ_Range = aZ_Max - aZ_Min;
+        Sensor sensor = event.sensor;
+        if (sensor.getType() == Sensor.TYPE_STEP_COUNTER){
+            steps = event.values[0];
+            textView.setText(String.valueOf(steps));
+        } else if (sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
+            //https://stackoverflow.com/questions/14740808/android-problems-calculating-the-orientation-of-the-device
+            float[] mRotationMatrix = new float[16];
+            float[] mRotationMatrixNew = new float[16];
+            // Convert the rotation-vector to a 4x4 matrix.
+            SensorManager.getRotationMatrixFromVector(mRotationMatrix,
+                    event.values);
+            SensorManager
+                    .remapCoordinateSystem(mRotationMatrix,
+                            SensorManager.AXIS_X, SensorManager.AXIS_Z,
+                            mRotationMatrixNew);
+            SensorManager.getOrientation(mRotationMatrixNew, orientationVals);
+
+            // Optionally convert the result from radians to degrees
+            orientationVals[0] = (float) Math.toDegrees(orientationVals[0]);
+            orientationVals[1] = (float) Math.toDegrees(orientationVals[1]);
+            orientationVals[2] = (float) Math.toDegrees(orientationVals[2]);
+
+/*            textView.setText(" Yaw: " + orientationVals[0] + "\n Pitch (not used): "
+                    + orientationVals[1] + "\n Roll (not used): "
+                    + orientationVals[2]);*/
+        } else if (sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            // get the the x,y,z values of the accelerometer
+            if (refreshed) {
+                aX = event.values[0];
+                aY = event.values[1];
+                aZ = event.values[2];
+                aX_Max = aX;
+                aY_Max = aY;
+                aZ_Max = aZ;
+                aX_Min = aX;
+                aY_Min = aY;
+                aZ_Min = aZ;
+            } else {
+                aX = event.values[0];
+                aY = event.values[1];
+                aZ = event.values[2];
+                aX_Max = Math.max(aX_Max, aX);
+                aY_Max = Math.max(aY_Max, aY);
+                aZ_Max = Math.max(aZ_Max, aZ);
+                aX_Min = Math.min(aX_Min, aX);
+                aY_Min = Math.min(aY_Min, aY);
+                aZ_Min = Math.min(aZ_Min, aZ);
+                aX_Range = aX_Max - aX_Min;
+                aY_Range = aY_Max - aY_Min;
+                aZ_Range = aZ_Max - aZ_Min;
+            }
+            refreshed = false;
         }
-        refreshed = false;
     }
 
     private int[] checkMotionKNN(String fileTest, String fileTrain) {
