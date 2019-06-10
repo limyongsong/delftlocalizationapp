@@ -8,6 +8,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.graphics.drawable.shapes.RectShape;
+import android.graphics.drawable.shapes.Shape;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -45,6 +46,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Vector;
 import java.lang.Math;
 
@@ -116,7 +118,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     /**
      * The shape.
      */
-    private ShapeDrawable drawable;
+    private ShapeDrawable[] drawable = new ShapeDrawable[5000];
 
     /** The table for bayes**/
     private TableLayout tableLayout;
@@ -124,6 +126,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     FileOutputStream outputStream;
 
     boolean started = false, refreshed = true;
+    boolean bayesCheck = false, PFCheck = false;
 
     Map<String, String[]> bayesLookup = new HashMap<String, String[]>();
 
@@ -195,13 +198,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         canvas = new Canvas(blankBitmap);
         canvasView.setImageBitmap(blankBitmap);
 
-        // create a drawable object of the point
-        //will need a for loop for 5000-10000 points
-        drawable = new ShapeDrawable(new OvalShape());
-        drawable.getPaint().setColor(Color.RED);
-        drawable.setBounds(width/2-3, height/2-3, width/2+3, height/2+3);
-
-        //Should be 2880x572 pixels (scaled 40 times from 72x14.3m) walls 5-10pixel thick
+        //2880x572 pixels (scaled 40 times from 72x14.3m) walls 5-10pixel thick
         walls = new ArrayList<>();
 //Left of Cell 16 and Cell 14
         ShapeDrawable d1 = new ShapeDrawable(new RectShape());
@@ -315,8 +312,22 @@ public class MainActivity extends Activity implements SensorEventListener {
         walls.add(d26);
         walls.add(d27);
 
+        // create a drawable object of the point
+        //will need a for loop for 5000-10000 points
+        for(int i =0; i<5000;i++) {
+            drawable[i] = new ShapeDrawable(new OvalShape());
+            drawable[i].getPaint().setColor(Color.RED);
+            int randomWidth = new Random().nextInt(2880) - 1440;
+            int randomHeight = new Random().nextInt(572) - 286;
+            drawable[i].setBounds(width / 2 + randomWidth -3 , height / 2 + randomHeight - 3, width / 2 + randomWidth + 3, height / 2 + randomHeight + 3);
+            if (isCollision(drawable[i])){
+                i--;
+            }
+        }
         // draw the objects
-        drawable.draw(canvas);
+        for (int i=0; i<5000;i++) {
+            drawable[i].draw(canvas);
+        }
         for(ShapeDrawable wall : walls)
             wall.draw(canvas);
 
@@ -432,6 +443,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 if (editText.getText().toString().contains("Bayes")) {
                     canvasView.setVisibility(v.INVISIBLE);
                     tableLayout.setVisibility(v.VISIBLE);
+                    bayesCheck = true;
+                    PFCheck = false;
                     cellProb = new double[16];
                     for (int i = 0; i < 16; i++) {
                         cellProb[i] = 0.0625;
@@ -465,6 +478,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } else if (editText.getText().toString().contains("PF")) {
                     tableLayout.setVisibility(v.INVISIBLE);
                     canvasView.setVisibility(v.VISIBLE);
+                    bayesCheck = false;
+                    PFCheck = true;
                     textViewBestCell.setText("");
                     textView.setText("WIP\n");
                 } else {
@@ -480,6 +495,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 if (editText.getText().toString().contains("Bayes")) {
                     canvasView.setVisibility(v.INVISIBLE);
                     tableLayout.setVisibility(v.VISIBLE);
+                    bayesCheck = true;
+                    PFCheck = false;
                     // Start a wifi scan.
                     wifiManager.startScan();
                     wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -542,6 +559,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } else if (editText.getText().toString().contains("PF")) {
                     tableLayout.setVisibility(v.INVISIBLE);
                     canvasView.setVisibility(v.VISIBLE);
+                    bayesCheck = false;
+                    PFCheck = true;
                     textViewBestCell.setText("");
                     textView.setText("WIP\n");
                 } else {
@@ -712,7 +731,22 @@ public class MainActivity extends Activity implements SensorEventListener {
                 } else if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 1) {
                     refreshed = true;
                     textViewMotion.setText("Walk");
-                    //textView.setText(String.valueOf(steps));
+                    if (PFCheck){
+                        //textView.setText(String.valueOf(steps));
+                        for(int i=0; i<5000;i++) {
+                            Rect r = drawable[i].getBounds();
+                            drawable[i].setBounds(r.left + 20, r.top, r.right + 20, r.bottom); //default walk right only now
+                        } //need work to add collision and other stuffs
+                        canvas.drawColor(Color.WHITE);
+                        for(int i=0; i<5000;i++){
+                            drawable[i].draw(canvas);
+                        }
+                        for(ShapeDrawable wall : walls)
+                            wall.draw(canvas);
+                        if (orientationVals[0] == 90){ //yaw
+                            //need work around here to get rotation and steps/pixels moved
+                        }
+                    }
                 } else {
                     refreshed = true;
                     textViewMotion.setText("Still");
@@ -1399,12 +1433,20 @@ public class MainActivity extends Activity implements SensorEventListener {
      */
     private boolean isCollision() {
         for(ShapeDrawable wall : walls) {
-            if(isCollision(wall,drawable))
+            for (ShapeDrawable particles : drawable) {
+                if (isCollision(wall, particles))
+                    return true; //need work to change to only affect that particle
+            }
+        }
+        return false;
+    }
+    private boolean isCollision(ShapeDrawable drawableS) {
+        for(ShapeDrawable wall : walls) {
+            if(isCollision(wall,drawableS))
                 return true;
         }
         return false;
     }
-
     /**
      * Determines if two shapes intersect.
      * @param first The first shape.
