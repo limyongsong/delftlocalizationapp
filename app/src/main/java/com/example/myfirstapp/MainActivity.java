@@ -854,6 +854,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                                     allParticles[i*5+4]-=4;
                                 }
                             }
+                            turnedDegree = Math.round(orientationVals[0]);
                         } else if (changedDegree<-90) {
                             for(int i=0;i<5000;i++){
                                 allParticles[i*5+4]-=1; //turn 90degree left
@@ -861,6 +862,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                                     allParticles[i*5+4]+=4;
                                 }
                             }
+                            turnedDegree = Math.round(orientationVals[0]);
                         }
                     }
                 } else if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 1) {
