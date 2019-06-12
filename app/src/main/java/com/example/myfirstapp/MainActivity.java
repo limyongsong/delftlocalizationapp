@@ -67,10 +67,13 @@ public class MainActivity extends Activity implements SensorEventListener {
     private Sensor accelerometer;
     private Sensor stepCounter; //LG stylus 3 doesnt seem to have this
     private Sensor rotationVector;
+    private Sensor gyroscope;
     float[] orientationVals = new float[3]; //if orientationvals[0] (yaw) changes more than 90 we made a turn
                                             //when turn left will minus when turn right will add, it flips at 180/-180
                                             // pitch, orientationvals[1], should be held at around 90 degrees
     int[] allParticles = new int [25000]; //every 5 is the left top right bottom direction
+    float[] gyroVals = new float[3];
+    boolean resetGyro = false;
     int turnedDegree = 0;
     int width, height;
     ArrayList<Integer> PFCellCount = new ArrayList<Integer>();
@@ -433,18 +436,18 @@ public class MainActivity extends Activity implements SensorEventListener {
             Toast.makeText(this, "Type accelerometer sensor not found", Toast.LENGTH_SHORT).show();
         }
 
-        // if the default stepcounter
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null) {
+        // if the default gyro
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
             // set accelerometer
-            stepCounter = sensorManager
-                    .getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            gyroscope = sensorManager
+                    .getDefaultSensor(Sensor.TYPE_GYROSCOPE);
             // register 'this' as a listener that updates values. Each time a sensor value changes,
             // the method 'onSensorChanged()' is called.
-            sensorManager.registerListener(this, stepCounter,
+            sensorManager.registerListener(this, gyroscope,
                     SensorManager.SENSOR_DELAY_NORMAL);
         } else {
-            // No stepcounter
-            Toast.makeText(this, "Type stepcounter sensor not found", Toast.LENGTH_SHORT).show();
+            // No gyroscope
+            Toast.makeText(this, "Type gyroscope sensor not found", Toast.LENGTH_SHORT).show();
         }
         // if the default rotation vector
         if (sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null) {
@@ -840,29 +843,27 @@ public class MainActivity extends Activity implements SensorEventListener {
                     refreshed = true;
                     textViewMotion.setText("Still");
                     if(PFCheck){
-                        int changedDegree = 0;
-                        changedDegree = Math.round(orientationVals[0]-180) - turnedDegree; //if negative means turned left
-/*                        if(changedDegree>180){ //at most turn 90 degrees at a time, but account for some variance
-                            changedDegree-=360;
-                        } else if (changedDegree<-180){
-                            changedDegree+=360;
-                        }*/ //need something to know for sure when turn left or right
-                        if(changedDegree>90){ //offset? //rotation needs work
-                            for(int i=0;i<5000;i++){
-                                allParticles[i*5+4]+=1; //turn 90degree right
-                                if(allParticles[i*5+4]>4){
-                                    allParticles[i*5+4]-=4;
+                        //changedDegree = Math.round(orientationVals[0]-180) - turnedDegree; //if negative means turned left
+                        if (!resetGyro) {
+                            if (gyroVals[2] > 1) { //offset? //rotation needs work vector >90, gyro <-1 for turn right, not sure why is oppsite when i try
+                                for (int i = 0; i < 5000; i++) {
+                                    allParticles[i * 5 + 4] += 1; //turn 90degree right
+                                    if (allParticles[i * 5 + 4] > 4) {
+                                        allParticles[i * 5 + 4] -= 4;
+                                    }
                                 }
-                            }
-                            turnedDegree = Math.round(orientationVals[0]-180);
-                        } else if (changedDegree<-90) {
-                            for(int i=0;i<5000;i++){
-                                allParticles[i*5+4]-=1; //turn 90degree left
-                                if(allParticles[i*5+4]<1){
-                                    allParticles[i*5+4]+=4;
+                                resetGyro = true;
+                                //turnedDegree = Math.round(orientationVals[0]-180);
+                            } else if (gyroVals[2] < -1) {
+                                for (int i = 0; i < 5000; i++) {
+                                    allParticles[i * 5 + 4] -= 1; //turn 90degree left
+                                    if (allParticles[i * 5 + 4] < 1) {
+                                        allParticles[i * 5 + 4] += 4;
+                                    }
                                 }
+                                resetGyro = true;
+                                //turnedDegree = Math.round(orientationVals[0]-180);
                             }
-                            turnedDegree = Math.round(orientationVals[0]-180);
                         }
                     }
                 } else if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 1) {
@@ -936,7 +937,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         for(int i=0; i<5000;i++){
                             drawable[i].draw(canvas);
                         }
-                        turnedDegree = Math.round(orientationVals[0]); //when finish walking, might have new value
+                        //turnedDegree = Math.round(orientationVals[0]); //when finish walking, might have new value
                     }
                 } else {
                     refreshed = true;
@@ -973,6 +974,19 @@ public class MainActivity extends Activity implements SensorEventListener {
         if (sensor.getType() == Sensor.TYPE_STEP_COUNTER){
             steps = event.values[0];
             textView.setText(String.valueOf(steps));
+        } else if (sensor.getType() == Sensor.TYPE_GYROSCOPE){
+            if (resetGyro){
+                gyroVals[0] = event.values[0];
+                gyroVals[1] = event.values[1];
+                gyroVals[2] = event.values[2];
+            }
+            if (PFCheck && (event.values[2]>1 || event.values[2]<-1)) {
+                gyroVals[0] = event.values[0];
+                gyroVals[1] = event.values[1];
+                gyroVals[2] = event.values[2];
+                resetGyro=false;
+            }
+            textView.setText("Rotate X=" + gyroVals[0] + "\nRotate Y=" + gyroVals[1]+"\nRotate Z=" + gyroVals[2]);
         } else if (sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
             //https://stackoverflow.com/questions/14740808/android-problems-calculating-the-orientation-of-the-device
             float[] mRotationMatrix = new float[16];
