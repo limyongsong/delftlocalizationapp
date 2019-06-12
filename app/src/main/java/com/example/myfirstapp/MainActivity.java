@@ -70,6 +70,10 @@ public class MainActivity extends Activity implements SensorEventListener {
     float[] orientationVals = new float[3]; //if orientationvals[0] (yaw) changes more than 90 we made a turn
                                             //when turn left will minus when turn right will add, it flips at 180/-180
                                             // pitch, orientationvals[1], should be held at around 90 degrees
+    int[] allParticles = new int [25000]; //every 5 is the left top right bottom direction
+    int turnedDegree = 0;
+    int width, height;
+    ArrayList<Integer> PFCellCount = new ArrayList<Integer>();
     /**
      * The wifi manager.
      */
@@ -102,7 +106,7 @@ public class MainActivity extends Activity implements SensorEventListener {
      */
     private TextView textView, textView1, textView2, textView3, textView4, textView5, textView6,
             textView7, textView8, textView9, textView10, textView11, textView12, textView13,
-            textView14, textView15, textView16, textViewMotion, textViewBestCell;
+            textView14, textView15, textView16, textViewMotion, textViewBestCell, textViewRotation;
     /**
      * The edit text box.
      */
@@ -134,6 +138,10 @@ public class MainActivity extends Activity implements SensorEventListener {
      * The walls.
      */
     private List<ShapeDrawable> walls;
+    /**
+     * The cells. should be white
+     */
+    private List<ShapeDrawable> cells;
 
     String csvName = "";
 
@@ -141,7 +149,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     //used to get data every certain time interval
     Handler h = new Handler();
-    int delay = 500; //1 second=1000 milisecond, 500=500milisecond
+    int delay = 1000; //1 second=1000 milisecond, 500=500milisecond
     Runnable runnable;
 
     @Override
@@ -168,6 +176,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         textView15 = (TextView) findViewById(R.id.cell15);
         textView16 = (TextView) findViewById(R.id.cell16);
         textViewMotion = (TextView) findViewById(R.id.currentMotion);
+        textViewRotation = (TextView) findViewById(R.id.currentRotation);
         textViewBestCell = (TextView) findViewById(R.id.bestCell);
         editText = (EditText) findViewById(R.id.editText2);
 
@@ -189,8 +198,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
-        int width = size.x+2200;
-        int height = size.y;
+        width = size.x+2600;
+        height = size.y;
 
         //Create the canvas
         canvasView = (ImageView) findViewById(R.id.canvas);
@@ -200,6 +209,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         //2880x572 pixels (scaled 40 times from 72x14.3m) walls 5-10pixel thick
         walls = new ArrayList<>();
+        cells = new ArrayList<>();
 //Left of Cell 16 and Cell 14
         ShapeDrawable d1 = new ShapeDrawable(new RectShape());
         d1.setBounds(width/2-1445, height/2-291, width/2-965, height/2-42);
@@ -216,6 +226,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         ShapeDrawable d5 = new ShapeDrawable(new RectShape());
         d5.setBounds(width/2-805, height/2-291, width/2-800, height/2-42);
 
+        ShapeDrawable c16 = new ShapeDrawable(new RectShape());
+        c16.getPaint().setColor(Color.GREEN);
+        c16.setBounds(width/2-955, height/2-281,width/2-800,height/2-42);
+
 //Cell 13
         ShapeDrawable d6 = new ShapeDrawable(new RectShape());
         d6.setBounds(width/2-800, height/2-291, width/2-795, height/2-42);
@@ -223,6 +237,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         d7.setBounds(width/2-795, height/2-291, width/2-645, height/2-281);
         ShapeDrawable d8 = new ShapeDrawable(new RectShape());
         d8.setBounds(width/2-645, height/2-291, width/2-640, height/2-42);
+
+        ShapeDrawable c13 = new ShapeDrawable(new RectShape());
+        c13.getPaint().setColor(Color.GREEN);
+        c13.setBounds(width/2-795, height/2-281,width/2-640,height/2-42);
 
 //Cell 11
         ShapeDrawable d9 = new ShapeDrawable(new RectShape());
@@ -232,6 +250,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         ShapeDrawable d11 = new ShapeDrawable(new RectShape());
         d11.setBounds(width/2-485, height/2-291, width/2-480, height/2-42);
 
+        ShapeDrawable c11 = new ShapeDrawable(new RectShape());
+        c11.getPaint().setColor(Color.GREEN);
+        c11.setBounds(width/2-635, height/2-281,width/2-480,height/2-42);
+
 //Cell 3
         ShapeDrawable d12 = new ShapeDrawable(new RectShape());
         d12.setBounds(width/2+480, height/2-291, width/2+485, height/2-42);
@@ -239,6 +261,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         d13.setBounds(width/2+485, height/2-291, width/2+635, height/2-281);
         ShapeDrawable d14 = new ShapeDrawable(new RectShape());
         d14.setBounds(width/2+635, height/2-291, width/2+640, height/2-42);
+
+        ShapeDrawable c3 = new ShapeDrawable(new RectShape());
+        c3.getPaint().setColor(Color.GREEN);
+        c3.setBounds(width/2+485, height/2-281,width/2+640,height/2-42);
 
 //Between Cell 11 and 3
         ShapeDrawable d15 = new ShapeDrawable(new RectShape());
@@ -262,6 +288,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         ShapeDrawable d21 = new ShapeDrawable(new RectShape());
         d21.setBounds(width/2-965, height/2+281, width/2-800, height/2+291);
 
+        ShapeDrawable c14 = new ShapeDrawable(new RectShape());
+        c14.getPaint().setColor(Color.GREEN);
+        c14.setBounds(width/2-955, height/2+42,width/2-800,height/2+281);
 
 //Right of Cell 14
         ShapeDrawable d22 = new ShapeDrawable(new RectShape());
@@ -272,6 +301,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         d23.setBounds(width/2+475, height/2+42, width/2+485, height/2+291);
         ShapeDrawable d24 = new ShapeDrawable(new RectShape());
         d24.setBounds(width/2+475, height/2+281, width/2+635, height/2+291);
+
+        ShapeDrawable c1 = new ShapeDrawable(new RectShape());
+        c1.getPaint().setColor(Color.GREEN);
+        c1.setBounds(width/2+485, height/2+42,width/2+635,height/2+281);
 
 //Right of Cell 1
         ShapeDrawable d25 = new ShapeDrawable(new RectShape());
@@ -284,6 +317,48 @@ public class MainActivity extends Activity implements SensorEventListener {
 //Right corridor end
         ShapeDrawable d27 = new ShapeDrawable(new RectShape());
         d27.setBounds(width/2+1435, height/2-42, width/2+1445, height/2+42);
+
+        //4 surrounding barriers right, left up down
+        ShapeDrawable d28 = new ShapeDrawable(new RectShape());
+        d28.setBounds(width/2+1445, height/2-500, width/2+1645, height/2+500);
+        ShapeDrawable d29 = new ShapeDrawable(new RectShape());
+        d29.setBounds(width/2-1645, height/2-500, width/2-1445, height/2+500);
+        ShapeDrawable d30 = new ShapeDrawable(new RectShape());
+        d30.setBounds(width/2-1445, height/2-500, width/2+1445, height/2-291);
+        ShapeDrawable d31 = new ShapeDrawable(new RectShape());
+        d31.setBounds(width/2-1445, height/2+291, width/2+1445, height/2+500);
+
+        //cells in corridoor
+        ShapeDrawable c15 = new ShapeDrawable(new RectShape());
+        c15.getPaint().setColor(Color.GREEN);
+        c15.setBounds(width/2-960, height/2-42,width/2-800,height/2+42);
+        ShapeDrawable c12 = new ShapeDrawable(new RectShape());
+        c12.getPaint().setColor(Color.GREEN);
+        c12.setBounds(width/2-800, height/2-42,width/2-640,height/2+42);
+        ShapeDrawable c10 = new ShapeDrawable(new RectShape());
+        c10.getPaint().setColor(Color.GREEN);
+        c10.setBounds(width/2-640, height/2-42,width/2-480,height/2+42);
+        ShapeDrawable c9 = new ShapeDrawable(new RectShape());
+        c9.getPaint().setColor(Color.GREEN);
+        c9.setBounds(width/2-480, height/2-42,width/2-320,height/2+42);
+        ShapeDrawable c8 = new ShapeDrawable(new RectShape());
+        c8.getPaint().setColor(Color.GREEN);
+        c8.setBounds(width/2-320, height/2-42,width/2-160,height/2+42);
+        ShapeDrawable c7 = new ShapeDrawable(new RectShape());
+        c7.getPaint().setColor(Color.GREEN);
+        c7.setBounds(width/2-160, height/2-42,width/2,height/2+42);
+        ShapeDrawable c6 = new ShapeDrawable(new RectShape());
+        c6.getPaint().setColor(Color.GREEN);
+        c6.setBounds(width/2, height/2-42,width/2+160,height/2+42);
+        ShapeDrawable c5 = new ShapeDrawable(new RectShape());
+        c5.getPaint().setColor(Color.GREEN);
+        c5.setBounds(width/2+160, height/2-42,width/2+320,height/2+42);
+        ShapeDrawable c4 = new ShapeDrawable(new RectShape());
+        c4.getPaint().setColor(Color.GREEN);
+        c4.setBounds(width/2+320, height/2-42,width/2+480,height/2+42);
+        ShapeDrawable c2 = new ShapeDrawable(new RectShape());
+        c2.getPaint().setColor(Color.GREEN);
+        c2.setBounds(width/2+480, height/2-42,width/2+640,height/2+42);
 
         walls.add(d1);
         walls.add(d2);
@@ -311,23 +386,31 @@ public class MainActivity extends Activity implements SensorEventListener {
         walls.add(d25);
         walls.add(d26);
         walls.add(d27);
+        walls.add(d28);
+        walls.add(d29);
+        walls.add(d30);
+        walls.add(d31);
 
-        // create a drawable object of the point
-        //will need a for loop for 5000-10000 points
-        for(int i =0; i<5000;i++) {
-            drawable[i] = new ShapeDrawable(new OvalShape());
-            drawable[i].getPaint().setColor(Color.RED);
-            int randomWidth = new Random().nextInt(2880) - 1440;
-            int randomHeight = new Random().nextInt(572) - 286;
-            drawable[i].setBounds(width / 2 + randomWidth -3 , height / 2 + randomHeight - 3, width / 2 + randomWidth + 3, height / 2 + randomHeight + 3);
-            if (isCollision(drawable[i])){
-                i--;
-            }
-        }
-        // draw the objects
-        for (int i=0; i<5000;i++) {
-            drawable[i].draw(canvas);
-        }
+        cells.add(c1);
+        cells.add(c2);
+        cells.add(c3);
+        cells.add(c4);
+        cells.add(c5);
+        cells.add(c6);
+        cells.add(c7);
+        cells.add(c8);
+        cells.add(c9);
+        cells.add(c10);
+        cells.add(c11);
+        cells.add(c12);
+        cells.add(c13);
+        cells.add(c14);
+        cells.add(c15);
+        cells.add(c16);
+
+        for(ShapeDrawable cell : cells)
+            cell.draw(canvas);
+        //particles only drawn when PFCheck true
         for(ShapeDrawable wall : walls)
             wall.draw(canvas);
 
@@ -476,12 +559,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                     } //the values are in string, so change to double when need to calculate probability
                     textView.setText("Bayes mode selected");
                 } else if (editText.getText().toString().contains("PF")) {
-                    tableLayout.setVisibility(v.INVISIBLE);
-                    canvasView.setVisibility(v.VISIBLE);
-                    bayesCheck = false;
-                    PFCheck = true;
                     textViewBestCell.setText("");
-                    textView.setText("WIP\n");
+                    textView.setText("Please select PF using 'Locate Me' button\n");
                 } else {
                     textView.setText("Please enter string with 'Bayes' or 'PF', which you want to train\n");
                 }
@@ -561,8 +640,40 @@ public class MainActivity extends Activity implements SensorEventListener {
                     canvasView.setVisibility(v.VISIBLE);
                     bayesCheck = false;
                     PFCheck = true;
+                    // create a drawable object of the point
+                    //will need a for loop for 5000-10000 points
+                    for(int i =0; i<5000;i++) {
+                        drawable[i] = new ShapeDrawable(new OvalShape());
+                        drawable[i].getPaint().setColor(Color.RED);
+                        int randomWidth = new Random().nextInt(2880) - 1440;
+                        int randomHeight = new Random().nextInt(572) - 286;
+                        //int randomDegree = new Random().nextInt(90)-45; // direction should be random +/-45 degree
+                        allParticles[i*5]=width / 2 + randomWidth -3;
+                        allParticles[i*5+1]=height / 2 + randomHeight - 3;
+                        allParticles[i*5+2]=width / 2 + randomWidth + 3;
+                        allParticles[i*5+3]=height / 2 + randomHeight + 3;
+                        //allParticles[i*5+4]= randomDegree+ Math.round(orientationVals[0]);// will store the yaw
+                        int tempOVal = Math.round(orientationVals[0]);
+                        if (tempOVal>300) { //rotation needs work
+                            allParticles[i*5+4] = 1; //right, based on onsite check
+                        } else if (tempOVal>200){
+                            allParticles[i*5+4] = 2; //up
+                        } else if (tempOVal>100){
+                            allParticles[i*5+4] = 3; //left
+                        } else if (tempOVal>0){
+                            allParticles[i*5+4] = 4; //down
+                        }
+                        drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1], allParticles[i*5+2], allParticles[i*5+3]);
+                        if (isCollision(drawable[i])){
+                            i--;
+                        }
+                    }
+                    // draw the objects
+                    for (int i=0; i<5000;i++) {
+                        drawable[i].draw(canvas);
+                    }
                     textViewBestCell.setText("");
-                    textView.setText("WIP\n");
+                    textView.setText("PF selected\n");
                 } else {
                     textView.setText("Please enter string with 'Bayes' or 'PF', which you want to train\n");
                 }
@@ -728,28 +839,108 @@ public class MainActivity extends Activity implements SensorEventListener {
                 if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 0) {
                     refreshed = true;
                     textViewMotion.setText("Still");
+                    if(PFCheck){
+                        int changedDegree = 0;
+                        changedDegree = Math.round(orientationVals[0]) - turnedDegree; //if negative means turned left
+                        if(changedDegree>180){ //at most turn 90 degrees at a time, but account for some variance
+                            changedDegree-=360;
+                        } else if (changedDegree<-180){
+                            changedDegree+=360;
+                        }
+                        if(changedDegree<90){ //offset? //rotation needs work
+                            for(int i=0;i<5000;i++){
+                                allParticles[i*5+4]+=1; //turn 90degree right
+                                if(allParticles[i*5+4]>4){
+                                    allParticles[i*5+4]-=4;
+                                }
+                            }
+                        } else if (changedDegree<-90) {
+                            for(int i=0;i<5000;i++){
+                                allParticles[i*5+4]-=1; //turn 90degree left
+                                if(allParticles[i*5+4]<1){
+                                    allParticles[i*5+4]+=4;
+                                }
+                            }
+                        }
+                    }
                 } else if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 1) {
                     refreshed = true;
-                    textViewMotion.setText("Walk");
-                    if (PFCheck){
+                    textViewMotion.setText("Walk");//come in here every sec when walking
+                    if (PFCheck) {
+                        turnedDegree = Math.round(orientationVals[0]); //when start turning, log the value
                         //textView.setText(String.valueOf(steps));
-                        for(int i=0; i<5000;i++) {
-                            Rect r = drawable[i].getBounds();
-                            drawable[i].setBounds(r.left + 20, r.top, r.right + 20, r.bottom); //default walk right only now
+                        for(int i=0; i<5000;i++) { //stride 0.4X1.7m = 0.68m > ~28pixels, 0.5sec per step, 2 steps = 56pix
+                           if(allParticles[i*5+4]==1){
+                                drawable[i].setBounds(allParticles[i*5] +=56, allParticles[i*5+1], allParticles[i*5+2] +=56, allParticles[i*5+3]);
+                            } else if(allParticles[i*5+4]==2){
+                                drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]+=56, allParticles[i*5+2], allParticles[i*5+3]+=56);
+                            } else if(allParticles[i*5+4]==3){
+                                drawable[i].setBounds(allParticles[i*5] -=56, allParticles[i*5+1], allParticles[i*5+2]-=56, allParticles[i*5+3]);
+                            } else if(allParticles[i*5+4]==4){
+                                drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]-=56, allParticles[i*5+2], allParticles[i*5+3]-=56);
+                            } else{
+                               drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]+=56, allParticles[i*5+2], allParticles[i*5+3]+=56);
+                           }
                         } //need work to add collision and other stuffs
-                        canvas.drawColor(Color.WHITE);
-                        for(int i=0; i<5000;i++){
-                            drawable[i].draw(canvas);
+                        for (int i=0; i <5000;i++){
+                            if (isCollision(drawable[i])){
+                                //do work to respawn particle
+                                allParticles[i*5+4]=-1; //-1 at direction means particle killed
+                            }
                         }
+                        int randNum;
+                        int randPixX;
+                        int randPixY;
+                        int cellPFCurrent;
+                        PFCellCount = new ArrayList<Integer>();
+                        for(int i =0; i<16;i++){
+                            PFCellCount.add(0);
+                        }
+                        for (int i=0; i <5000;i++){
+                            if (allParticles[i*5+4]==-1){
+                                randNum = new Random().nextInt(4999);//0-4999 respwan near someone alive
+                                if (allParticles[randNum*5+4]==-1){
+                                    i--; //retry
+                                } else {
+                                    randPixX =  new Random().nextInt(120)-60; //within +/- x pixel distance away (need to be big enough to not have too dense)
+                                    randPixY =  new Random().nextInt(120)-60; //within +/- y pixel distance away
+                                    allParticles[i*5]=allParticles[randNum*5]+randPixX;
+                                    allParticles[i*5+1]=allParticles[randNum*5+1]+randPixY;
+                                    allParticles[i*5+2]=allParticles[randNum*5+2]+randPixX;
+                                    allParticles[i*5+3]=allParticles[randNum*5+3]+randPixY;
+                                    allParticles[i*5+4]=allParticles[randNum*5+4];
+                                    drawable[i].setBounds(allParticles[i*5], allParticles[i*5+1], allParticles[i*5+2], allParticles[i*5+3]);
+                                    if(isCollision(drawable[i])){
+                                        allParticles[i*5+4]=-1;
+                                        i--;//retry
+                                    }
+                                }
+                            } else {
+                                cellPFCurrent = isCell(drawable[i]);
+                                PFCellCount.set(cellPFCurrent, PFCellCount.get(cellPFCurrent) + 1);
+                            }
+                        }
+                        int highestCount = 0;
+                        int PFbestCell = 0;
+                        for (Integer number: PFCellCount ){
+                            PFbestCell++;
+                            if ((number > highestCount)){
+                                highestCount = number;
+                                textViewBestCell.setText("Cell" + (PFbestCell));
+                            }
+                        }
+                        canvas.drawColor(Color.WHITE); //reset canvas for redrawing
+                        for(ShapeDrawable cell : cells)
+                            cell.draw(canvas);
                         for(ShapeDrawable wall : walls)
                             wall.draw(canvas);
-                        if (orientationVals[0] == 90){ //yaw
-                            //need work around here to get rotation and steps/pixels moved
+                        for(int i=0; i<5000;i++){
+                            drawable[i].draw(canvas);
                         }
                     }
                 } else {
                     refreshed = true;
-                    textViewMotion.setText("Still");
+                    textViewMotion.setText("Unknown");
                 }
                 h.postDelayed(runnable, delay);
             }
@@ -796,13 +987,15 @@ public class MainActivity extends Activity implements SensorEventListener {
             SensorManager.getOrientation(mRotationMatrixNew, orientationVals);
 
             // Optionally convert the result from radians to degrees
-            orientationVals[0] = (float) Math.toDegrees(orientationVals[0]);
+            orientationVals[0] = (float) Math.toDegrees(orientationVals[0]) +180; //make it 0-360 degree
             orientationVals[1] = (float) Math.toDegrees(orientationVals[1]);
             orientationVals[2] = (float) Math.toDegrees(orientationVals[2]);
+            //compass always wrong, turn right is +, turn left is minus though, flips at -180/180degree, +180 to make it 0-360
+            //(0 is north, 180 is south, 270 is west, 90 is east)
 
-/*            textView.setText(" Yaw: " + orientationVals[0] + "\n Pitch (not used): "
-                    + orientationVals[1] + "\n Roll (not used): "
-                    + orientationVals[2]);*/
+            textViewRotation.setText(" Yaw: " + orientationVals[0] + "\n Pitch (maintain @88): "
+                    + orientationVals[1] + "\n Roll (maintain @150): "
+                    + orientationVals[2]);
         } else if (sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             // get the the x,y,z values of the accelerometer
             if (refreshed) {
@@ -830,6 +1023,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 aZ_Range = aZ_Max - aZ_Min;
             }
             refreshed = false;
+            //textView.setText("aX =" + aX + "\naY=" +aY + "\naZ="+ aZ);
         }
     }
 
@@ -1456,5 +1650,15 @@ public class MainActivity extends Activity implements SensorEventListener {
     private boolean isCollision(ShapeDrawable first, ShapeDrawable second) {
         Rect firstRect = new Rect(first.getBounds());
         return firstRect.intersect(second.getBounds());
+    }
+
+    private int isCell(ShapeDrawable drawableS){
+        int cellN=0; //cell number
+        for(ShapeDrawable cell : cells) {
+            if(isCollision(cell,drawableS))
+                return cellN;
+            cellN++;
+        }
+        return 0; //return 0 if not in any cell
     }
 }
