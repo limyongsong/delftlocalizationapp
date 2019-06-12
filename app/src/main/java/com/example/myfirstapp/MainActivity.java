@@ -659,13 +659,13 @@ public class MainActivity extends Activity implements SensorEventListener {
                         //allParticles[i*5+4]= randomDegree+ Math.round(orientationVals[0]);// will store the yaw
                         turnedDegree = Math.round(orientationVals[0]-180);//first turneddegree
                         if (turnedDegree+180>300) { //rotation needs work
-                            allParticles[i*5+4] = 1; //right, based on onsite check
+                            allParticles[i*5+4] = 3; //1 right, 2 up, 3 left, 4 down based on onsite check
                         } else if (turnedDegree+180>200){
-                            allParticles[i*5+4] = 2; //up
+                            allParticles[i*5+4] = 4;
                         } else if (turnedDegree+180>100){
-                            allParticles[i*5+4] = 3; //left
+                            allParticles[i*5+4] = 1;
                         } else if (turnedDegree+180>0){
-                            allParticles[i*5+4] = 4; //down
+                            allParticles[i*5+4] = 2;
                         }
                         drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1], allParticles[i*5+2], allParticles[i*5+3]);
                         if (isCollision(drawable[i])){
@@ -1015,7 +1015,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 gyroVals[1] = event.values[1];
                 gyroVals[2] = event.values[2];
             }
-            textView.setText("Rotate X=" + gyroVals[0] + "\nRotate Y=" + gyroVals[1]+"\nRotate Z=" + gyroVals[2]);
+            //textView.setText("Rotate X=" + gyroVals[0] + "\nRotate Y=" + gyroVals[1]+"\nRotate Z=" + gyroVals[2]);
         } else if (sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
             //https://stackoverflow.com/questions/14740808/android-problems-calculating-the-orientation-of-the-device
             float[] mRotationMatrix = new float[16];
