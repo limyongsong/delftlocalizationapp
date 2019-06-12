@@ -74,6 +74,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     int[] allParticles = new int [25000]; //every 5 is the left top right bottom direction
     float[] gyroVals = new float[3];
     boolean resetGyro = false;
+    int PFcount = 0;
     int turnedDegree = 0;
     int width, height;
     ArrayList<Integer> PFCellCount = new ArrayList<Integer>();
@@ -843,8 +844,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                     refreshed = true;
                     textViewMotion.setText("Still");
                     if(PFCheck){
+                        PFcount++;
                         //changedDegree = Math.round(orientationVals[0]-180) - turnedDegree; //if negative means turned left
-                        if (!resetGyro) {
+                        if (!resetGyro && PFcount > 1) {
                             if (gyroVals[2] > 1) { //offset? //rotation needs work vector >90, gyro <-1 for turn right, not sure why is oppsite when i try
                                 for (int i = 0; i < 5000; i++) {
                                     allParticles[i * 5 + 4] += 1; //turn 90degree right
@@ -853,6 +855,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                                     }
                                 }
                                 resetGyro = true;
+                                gyroVals[2] = 0;
                                 //turnedDegree = Math.round(orientationVals[0]-180);
                             } else if (gyroVals[2] < -1) {
                                 for (int i = 0; i < 5000; i++) {
@@ -862,6 +865,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                                     }
                                 }
                                 resetGyro = true;
+                                gyroVals[2] = 0;
                                 //turnedDegree = Math.round(orientationVals[0]-180);
                             }
                         }
@@ -870,6 +874,30 @@ public class MainActivity extends Activity implements SensorEventListener {
                     refreshed = true;
                     textViewMotion.setText("Walk");//come in here every sec when walking
                     if (PFCheck) {
+                        PFcount++;
+                        if (!resetGyro && PFcount>1) {
+                            if (gyroVals[2] > 1) { //offset? //rotation needs work vector >90, gyro <-1 for turn right, not sure why is oppsite when i try
+                                for (int i = 0; i < 5000; i++) {
+                                    allParticles[i * 5 + 4] += 1; //turn 90degree right
+                                    if (allParticles[i * 5 + 4] > 4) {
+                                        allParticles[i * 5 + 4] -= 4;
+                                    }
+                                }
+                                resetGyro = true;
+                                gyroVals[2] = 0;
+                                //turnedDegree = Math.round(orientationVals[0]-180);
+                            } else if (gyroVals[2] < -1) {
+                                for (int i = 0; i < 5000; i++) {
+                                    allParticles[i * 5 + 4] -= 1; //turn 90degree left
+                                    if (allParticles[i * 5 + 4] < 1) {
+                                        allParticles[i * 5 + 4] += 4;
+                                    }
+                                }
+                                resetGyro = true;
+                                gyroVals[2] = 0;
+                                //turnedDegree = Math.round(orientationVals[0]-180);
+                            }
+                        }
                         //textView.setText(String.valueOf(steps));
                         for(int i=0; i<5000;i++) { //stride 0.4X1.7m = 0.68m > ~28pixels, 0.5sec per step, 2 steps = 56pix
                            if(allParticles[i*5+4]==1){
@@ -949,7 +977,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         super.onResume();
         sensorManager.registerListener(this, accelerometer,
                 SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, stepCounter,
+        sensorManager.registerListener(this, gyroscope,
                 SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, rotationVector,
                 SensorManager.SENSOR_DELAY_NORMAL);
@@ -975,16 +1003,17 @@ public class MainActivity extends Activity implements SensorEventListener {
             steps = event.values[0];
             textView.setText(String.valueOf(steps));
         } else if (sensor.getType() == Sensor.TYPE_GYROSCOPE){
-            if (resetGyro){
-                gyroVals[0] = event.values[0];
-                gyroVals[1] = event.values[1];
-                gyroVals[2] = event.values[2];
-            }
-            if (PFCheck && (event.values[2]>1 || event.values[2]<-1)) {
+            if (PFCheck && PFcount>1 && (event.values[2]>1 || event.values[2]<-1)) {
                 gyroVals[0] = event.values[0];
                 gyroVals[1] = event.values[1];
                 gyroVals[2] = event.values[2];
                 resetGyro=false;
+                PFcount =0; //added this count cause it keep turn too much (works sort of well, but makes it 2sec detect time)
+            }
+            if (resetGyro){
+                gyroVals[0] = event.values[0];
+                gyroVals[1] = event.values[1];
+                gyroVals[2] = event.values[2];
             }
             textView.setText("Rotate X=" + gyroVals[0] + "\nRotate Y=" + gyroVals[1]+"\nRotate Z=" + gyroVals[2]);
         } else if (sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
