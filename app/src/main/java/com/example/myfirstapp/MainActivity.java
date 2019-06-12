@@ -653,14 +653,14 @@ public class MainActivity extends Activity implements SensorEventListener {
                         allParticles[i*5+2]=width / 2 + randomWidth + 3;
                         allParticles[i*5+3]=height / 2 + randomHeight + 3;
                         //allParticles[i*5+4]= randomDegree+ Math.round(orientationVals[0]);// will store the yaw
-                        int tempOVal = Math.round(orientationVals[0]);
-                        if (tempOVal>300) { //rotation needs work
+                        turnedDegree = Math.round(orientationVals[0]-180);//first turneddegree
+                        if (turnedDegree+180>300) { //rotation needs work
                             allParticles[i*5+4] = 1; //right, based on onsite check
-                        } else if (tempOVal>200){
+                        } else if (turnedDegree+180>200){
                             allParticles[i*5+4] = 2; //up
-                        } else if (tempOVal>100){
+                        } else if (turnedDegree+180>100){
                             allParticles[i*5+4] = 3; //left
-                        } else if (tempOVal>0){
+                        } else if (turnedDegree+180>0){
                             allParticles[i*5+4] = 4; //down
                         }
                         drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1], allParticles[i*5+2], allParticles[i*5+3]);
@@ -841,20 +841,20 @@ public class MainActivity extends Activity implements SensorEventListener {
                     textViewMotion.setText("Still");
                     if(PFCheck){
                         int changedDegree = 0;
-                        changedDegree = Math.round(orientationVals[0]) - turnedDegree; //if negative means turned left
-                        if(changedDegree>180){ //at most turn 90 degrees at a time, but account for some variance
+                        changedDegree = Math.round(orientationVals[0]-180) - turnedDegree; //if negative means turned left
+/*                        if(changedDegree>180){ //at most turn 90 degrees at a time, but account for some variance
                             changedDegree-=360;
                         } else if (changedDegree<-180){
                             changedDegree+=360;
-                        }
-                        if(changedDegree<90){ //offset? //rotation needs work
+                        }*/ //need something to know for sure when turn left or right
+                        if(changedDegree>90){ //offset? //rotation needs work
                             for(int i=0;i<5000;i++){
                                 allParticles[i*5+4]+=1; //turn 90degree right
                                 if(allParticles[i*5+4]>4){
                                     allParticles[i*5+4]-=4;
                                 }
                             }
-                            turnedDegree = Math.round(orientationVals[0]);
+                            turnedDegree = Math.round(orientationVals[0]-180);
                         } else if (changedDegree<-90) {
                             for(int i=0;i<5000;i++){
                                 allParticles[i*5+4]-=1; //turn 90degree left
@@ -862,27 +862,24 @@ public class MainActivity extends Activity implements SensorEventListener {
                                     allParticles[i*5+4]+=4;
                                 }
                             }
-                            turnedDegree = Math.round(orientationVals[0]);
+                            turnedDegree = Math.round(orientationVals[0]-180);
                         }
                     }
                 } else if (checkMotionKNN(aX_Range, aY_Range, aZ_Range, "combinedSW.csv") == 1) {
                     refreshed = true;
                     textViewMotion.setText("Walk");//come in here every sec when walking
                     if (PFCheck) {
-                        turnedDegree = Math.round(orientationVals[0]); //when start turning, log the value
                         //textView.setText(String.valueOf(steps));
                         for(int i=0; i<5000;i++) { //stride 0.4X1.7m = 0.68m > ~28pixels, 0.5sec per step, 2 steps = 56pix
                            if(allParticles[i*5+4]==1){
                                 drawable[i].setBounds(allParticles[i*5] +=56, allParticles[i*5+1], allParticles[i*5+2] +=56, allParticles[i*5+3]);
                             } else if(allParticles[i*5+4]==2){
-                                drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]+=56, allParticles[i*5+2], allParticles[i*5+3]+=56);
+                                drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]-=56, allParticles[i*5+2], allParticles[i*5+3]-=56);
                             } else if(allParticles[i*5+4]==3){
                                 drawable[i].setBounds(allParticles[i*5] -=56, allParticles[i*5+1], allParticles[i*5+2]-=56, allParticles[i*5+3]);
                             } else if(allParticles[i*5+4]==4){
-                                drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]-=56, allParticles[i*5+2], allParticles[i*5+3]-=56);
-                            } else{
-                               drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]+=56, allParticles[i*5+2], allParticles[i*5+3]+=56);
-                           }
+                                drawable[i].setBounds(allParticles[i*5] , allParticles[i*5+1]+=56, allParticles[i*5+2], allParticles[i*5+3]+=56);
+                            }
                         } //need work to add collision and other stuffs
                         for (int i=0; i <5000;i++){
                             if (isCollision(drawable[i])){
@@ -939,6 +936,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         for(int i=0; i<5000;i++){
                             drawable[i].draw(canvas);
                         }
+                        turnedDegree = Math.round(orientationVals[0]); //when finish walking, might have new value
                     }
                 } else {
                     refreshed = true;
